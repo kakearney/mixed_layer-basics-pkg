@@ -1,0 +1,232 @@
+% \newcolumntype{x}[1]{>{\raggedleft\hspace{0pt}}p{#1}}     % p, but right-justified 
+% \newcolumntype{y}[1]{>{\raggedright\hspace{0pt}}p{#1}}    % p, but left-justified
+
+\newcolumntype{L}[1]{>{\RaggedRight}p{#1}} % p, but left-justified
+\newcolumntype{R}[1]{>{\RaggedLeft}p{#1}}  % p, but right-justified
+
+% Biogeochemical parameters tables
+
+\newcommand{\bgctable}[3]{
+\begin{table}[h]
+	\footnotesize
+	\caption{Biogeochemical process-related parameters: #2}
+	\begin{tabular}{p{2in}p{0.5in}p{0.75in}>{\raggedleft}p{0.5in}@{ }p{1.25in}}
+		\toprule
+	  	Parameter & Symbol & Group &  Value & \\ % \multicolumn{2}{l}{Value} \\
+		\midrule
+		#1
+		\bottomrule
+   	\end{tabular}
+	\label{tab:nemparam#3}
+\end{table}
+}
+
+% Description of critters table
+
+\newcommand{\crittertable}[2]{
+\begin{table}
+	\footnotesize   
+	\caption{A description of the 47 functional groups included in the 
+	         unsimplified version of the food web model. Species listed in the 
+	         Includes column are not exhaustive, but represent the dominant 
+	         members of each functional group.}
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabular}{L{1.25in}L{2.0in}L{3.00in}}
+		\toprule
+		Group & Includes & Details \tabularnewline
+		\midrule 
+        #1
+		\bottomrule 
+	\end{tabular}
+	\label{tab:aydin48critterlist#2}
+\end{table}
+}
+
+\newcommand{\crittertablelong}[1]{
+\footnotesize
+\renewcommand{\arraystretch}{1.5}
+\begin{longtable}{L{1.25in}L{2.0in}L{2.75in}}
+	\caption{A description of the 47 functional groups included in the 
+	         unsimplified version of the food web model. Species listed in the 
+	         Includes column are not exhaustive, but represent the dominant 
+	         members of each functional group.} \\
+	\toprule
+	Group & Includes & Details \\
+	\midrule
+	\endfirsthead
+	\caption*{A description of the 47 functional groups included in the 
+	         unsimplified version of the food web model (continued).} \\
+	\toprule
+	Group & Includes & Details \\
+	\midrule
+	\endhead
+	\bottomrule
+	\endfoot
+    #1
+	\label{tab:aydin48critterlist}
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+\normalsize
+}
+
+
+% Time-varying parameters
+
+\newcommand{\timevarytable}[1]{
+\begin{table}
+	\footnotesize  
+	\caption{Derived parameters. These parameters vary over time as a function 
+	         of the state variables from both the physical and biological
+	         models.}   
+	\renewcommand{\arraystretch}{2.5} 
+	\begin{tabular}{lll}
+		\toprule
+		Parameter Name & Symbol & Definition\tabularnewline 
+		\midrule 
+		#1
+		\bottomrule 
+	\end{tabular}
+	\label{tab:wcenemDerivedParams}
+\end{table}
+}
+
+% Ecopath basic input
+
+\newcommand{\ecopathbasictable}[1]{
+\begin{table}
+	\footnotesize
+	\caption{Ecopath basic input variables for the 33-group simplified food 
+	         web, including biomass (B, tons wet weight m$^{-2}$), 
+	         production/biomass (PB, yr$^{-1}$), consumption/biomass 
+	         (QB, yr$^{-1}$), ecotrophic efficiency (EE), growth efficiency 
+	         (GE), and fraction unassimilated (GS)}
+	\begin{tabular}{L{1.50in}*{11}{r}}
+		\toprule
+	  	Group 	& \multicolumn{2}{c}{B}  &  \multicolumn{2}{c}{PB} & \multicolumn{2}{c}{QB} & \multicolumn{2}{c}{EE} & \multicolumn{2}{c}{GE}  & GS  \\     
+	    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
+		        & Value     & Ped        & Value    & Ped          & Value    & Ped         & Value    & Ped         &  Value    & Ped         &     \\ 
+		\midrule
+		#1
+		\bottomrule
+   	\end{tabular}
+	\label{tab:ecopathIn33}
+\end{table}
+}
+
+% Ecopath diet input
+
+\newcommand{\diettable}[2]{
+\begin{table}
+	\footnotesize 
+	\caption{Ecopath diet fraction input for the 33-group food web model.}    
+	\begin{tabular}{L{0.3\textwidth}L{0.3\textwidth}R{0.1\textwidth}R{0.1\textwidth}}
+		\toprule
+		Predator & Prey & Diet percentage & Pedigree \tabularnewline
+		\midrule 
+		#1
+		\bottomrule 
+	\end{tabular}
+	\label{tab:diet33_#2}
+\end{table}
+}
+
+
+\newcommand{\diettablelong}[1]{
+\footnotesize 
+\begin{longtable}[l]{L{0.3\textwidth}L{0.3\textwidth}R{0.1\textwidth}R{0.1\textwidth}}
+	\caption{Ecopath diet fraction input for the 33-group food web model.} \\    
+	\toprule
+	Predator & Prey & \mbox{Diet percentage} & Pedigree \tabularnewline
+	\midrule 
+	\endfirsthead
+	\caption*{Ecopath diet fraction input for the 33-group food web model (continued).} \\    
+	\toprule
+	Predator & Prey & \mbox{Diet percentage} & Pedigree \tabularnewline
+	\midrule 
+	\endhead
+	\bottomrule 
+	\endfoot
+	#1
+	\label{tab:diet33}
+\end{longtable}
+\normalsize
+}
+
+% Ecopath-derived, state-variable-related
+
+\newcommand{\epderivedstatetable}[1]{
+\begin{table}
+    \footnotesize
+    \caption{Ecopath-derived parameters for living state variables, including 
+             mass-balanced biomass ($B^*$, mol N m$^{-2}$), mass-balanced mortality 
+             flux per unit biomass ($M_0$, s$^{-1}$), growth efficiency ($GE$), 
+             and unassimilation fraction ($GS$).  The histogram columns indicate 
+             the distribution of values across ensemble members, with the column 
+             width ranging from 0 to 3.5 times the mean value.}
+    \begin{tabular}{llllllll}
+        \toprule
+        Group & \multicolumn{2}{c}{B*} & \multicolumn{2}{c}{M0} & \multicolumn{2}{c}{GE} & GS \\
+        \cmidrule(r){2-3} \cmidrule(r){4-5} \cmidrule(r){6-7}
+              & mean & histogram       & mean & histogram       & mean & histogram       & \\
+        \midrule
+		#1
+        \bottomrule
+    \end{tabular}
+    \label{tab:ecopathderivedState}
+\end{table}
+}
+
+% Ecopath-derived, predator-prey link-related
+
+\newcommand{\epderivedlinktable}[2]{
+\begin{table}
+    \footnotesize
+    \caption{Ecopath-derived parameters for predator-prey processes, including mass-balanced consumption rate ($Q^*$, mol N m$^{-2}$ s$^{-1}$), top-down control parameter ($X$), bottom-up control parameter ($D$), and functional response exponent ($\theta$).  The histogram column indicates the distribution of values across ensemble members, with the column width ranging from 0 to 8 times the mean value.}
+    \begin{tabular}{L{0.25\textwidth}L{0.25\textwidth}llrrr}
+        \toprule
+        Predator & Prey & \multicolumn{2}{c}{Q*} & X & D & $\theta$ \\
+        \cmidrule(r){3-4}
+                 &      & mean & histogram       &   &   &          \\
+        \midrule
+		#1
+        \bottomrule
+    \end{tabular}
+    \label{tab:ecopathderivedLink_#2}
+\end{table}
+}
+
+\newcommand{\epderivedlinklong}[1]{
+\footnotesize
+\begin{longtable}[l]{L{0.28\textwidth}L{0.28\textwidth}llrrr}
+	\caption{Ecopath-derived parameters for predator-prey processes, 
+	         including mass-balanced consumption rate ($Q^*$, mol N 
+	         m$^{-2}$ s$^{-1}$), top-down control parameter ($X$), 
+	         bottom-up control parameter ($D$), and functional response 
+	         exponent ($\theta$).  The histogram column indicates the 
+	         distribution of values across ensemble members, with the 
+	         column width ranging from 0 to 3.5 times the mean value.} \\
+	\toprule
+    Predator & Prey & \multicolumn{2}{c}{Q*} & X & D & $\theta$ \\
+    \cmidrule(r){3-4}
+             &      & mean & histogram       &   &   &          \\
+    \midrule
+	\endfirsthead
+	\caption*{Ecopath-derived parameters for predator-prey processes (continued).} \\
+	\toprule
+    Predator & Prey & \multicolumn{2}{c}{Q*} & X & D & $\theta$ \\
+    \cmidrule(r){3-4}
+             &      & mean & histogram       &   &   &          \\
+    \midrule
+	\endhead
+	\bottomrule
+	\endfoot
+	#1
+	\label{tab:ecopathderivedLink}
+\end{longtable}
+\normalsize
+}
+		
+
+
+
+
