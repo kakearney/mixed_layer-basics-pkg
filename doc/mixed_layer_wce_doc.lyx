@@ -205,9 +205,9 @@ Introduction
 \begin_layout Standard
 The model described in this document is a fully-coupled physical, biogeochemical
 , and ecosystem model.
- The generic model framework consists of a simple physical water column
- model, within which I run a biological module that adds in all the biologically
--relevant state variables to this physical model.
+ The generic model framework consists of a physical water column model,
+ within which I run a biological module that adds in all the biologically-releva
+nt state variables to this physical model.
  I never gave this model (or set of models) a proper name; I have a personal
  aversion to the trend of unintelligible acronyms but nothing better ever
  came to mind.
@@ -256,8 +256,8 @@ texttt{nemurokak.m}
 \end_inset
 
  (my own variant of the popular NEMURO model, with my initials appended).
- Taken as a whole, I've just named the thing after myself, since that's
- how it shows up for citation purposes.
+ Taken as a whole, for the purposes of titling this document, I've just
+ named it after myself, since that's how it shows up for citation purposes.
 \end_layout
 
 \begin_layout Standard
@@ -282,7 +282,7 @@ key "Kearney2013"
  to do so.
  I've spent a lot of time pulling my own hair out in attempts to understand
  the inner workings of other people's models, so I'm trying to keep things
- as transparent as possible with my own little pet model.
+ as transparent as possible with this one.
  This document will likely continue to accompany any publications that use
  this model as supplementary material, since all of this is far too detailed
  to go into journal articles themselves.
@@ -418,14 +418,14 @@ reference "sub:Bottom-stress"
  A dissipation term is included in 
 \begin_inset CommandInset ref
 LatexCommand formatted
-reference "eq:dU"
+reference "eq:dU-1"
 
 \end_inset
 
  and 
 \begin_inset CommandInset ref
 LatexCommand formatted
-reference "eq:dV"
+reference "eq:dV-1"
 
 \end_inset
 
@@ -1664,334 +1664,6 @@ This assumed that the majority of the depth-integrated heat flux (
  in the above expression it the total depth of the water column.
 \end_layout
 
-\begin_layout Standard
-\begin_inset Note Note
-status open
-
-\begin_layout Subsection
-Model framework and equations (old)
-\end_layout
-
-\begin_layout Plain Layout
-The mixed-layer model simulates the evolution of water column properties
- under specified forcing by wind, heat, and salinity forcing.
- Allowance is also made for currents via a depth-independent pressure accelerati
-on.
- There are six physical state variables in the physical model formulation:
- 
-\begin_inset Formula $U$
-\end_inset
-
- and 
-\begin_inset Formula $V$
-\end_inset
-
- are the east to west and south to north current velocities, and 
-\begin_inset Formula $T$
-\end_inset
-
- and 
-\begin_inset Formula $S$
-\end_inset
-
- are the temperature and salinity.
- The turbulence closure scheme introduces the remaining two state variables;
- : 
-\begin_inset Formula $q^{2}$
-\end_inset
-
- is a turbulent quantity equal to twice the turbulent kinetic energy, and
- 
-\begin_inset Formula $\ell$
-\end_inset
-
- is a turbulent length scale.
- These two state variables are used to calculate mixing-related parameters
- (
-\begin_inset Formula $K_{M}$
-\end_inset
-
- and 
-\begin_inset Formula $K_{V}$
-\end_inset
-
-) in 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dU"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dV"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dT"
-
-\end_inset
-
-, and 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dS"
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Plain Layout
-The momentum equations are standard one-dimensional formulations: 
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Formula 
-\begin{equation}
-\frac{{\partial U}}{dt}-fV=-\frac{{1}}{\rho_{_{0}}}\frac{{\partial p}}{\partial x}+\frac{\partial}{\partial z}K_{M}\frac{{\partial U}}{\partial z}-\epsilon U\label{eq:dU}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Formula 
-\begin{equation}
-\frac{{\partial V}}{dt}+fU=-\frac{{1}}{\rho_{_{0}}}\frac{{\partial p}}{\partial y}+\frac{\partial}{\partial z}K_{M}\frac{{\partial V}}{\partial z}-\epsilon V\label{eq:dV}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-where 
-\begin_inset Formula $f$
-\end_inset
-
- is the Coriolis parameter, 
-\begin_inset Formula $\rho$
-\end_inset
-
- is the density, 
-\begin_inset Formula $K_{M}$
-\end_inset
-
- is the viscosity, 
-\begin_inset Formula $\frac{{\partial p}}{\partial x}$
-\end_inset
-
- is a specified pressure gradient (to impose a mean current) and 
-\begin_inset Formula $\epsilon$
-\end_inset
-
- is a momentum dissipation term.
- The dissipation term serves as a surrogate for horizontal momentum divergence.
- It removes energy from past storm events over a specified time-scale as
- though energy was being transferred to more quiescent surrounding waters.
- Energy tends to accumulate unrealistically in one-dimensional water columns
- without this effect 
-\begin_inset CommandInset citation
-LatexCommand citep
-key "mellor2001one"
-
-\end_inset
-
-.
- The value of 
-\begin_inset Formula $\epsilon$
-\end_inset
-
- was tuned such that the energy in the modeled currents is consistent with
- that observed.
- Values comparable to the time scales of storm events (1/3 day
-\begin_inset Formula $^{-1}$
-\end_inset
-
-) yielded reasonable results.
- The equations are solved using a semi-implicit Crank-Nicolson scheme.
-\end_layout
-
-\begin_layout Plain Layout
-The Mellor-Yamada turbulence closure scheme 
-\begin_inset CommandInset citation
-LatexCommand citep
-key "mellor1982development"
-
-\end_inset
-
- is used to calculate mixing coefficients.
- The reader is referred to this reference and 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "mellor2004user"
-
-\end_inset
-
- for the governing equations and other details of this formulation.
- A k-epsilon formulation (see review by 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "umlauf2005second"
-
-\end_inset
-
-) was also tested and yielded similar results to those presented herein.
- The top and bottom boundary conditions for 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dU"
-
-\end_inset
-
- and 
-\begin_inset CommandInset ref
-LatexCommand formatted
-reference "eq:dV"
-
-\end_inset
-
- are provided by the wind stress formulation of 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "large1981open"
-
-\end_inset
-
- and a quadratic bottom drag law, respectively.
- Mixing at the surface was augmented by the wave breaking scheme of 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "mellor2004wave"
-
-\end_inset
-
-.
- 
-\end_layout
-
-\begin_layout Plain Layout
-The temperature and salinity equations are given by: 
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Formula 
-\begin{equation}
-\frac{\partial T}{\partial t}=\frac{\partial}{\partial z}K_{V}\frac{{\partial T}}{\partial z}+ss\label{eq:dT}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Formula 
-\begin{equation}
-\frac{\partial S}{\partial t}=\frac{\partial}{\partial z}K_{V}\frac{{\partial S}}{\partial z}+ss\label{eq:dS}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-where 
-\begin_inset Formula $K_{V}$
-\end_inset
-
- is the vertical turbulent diffusion coefficient, and 
-\begin_inset Formula $ss$
-\end_inset
-
- is used to indicate sources minus sinks.
- 
-\end_layout
-
-\begin_layout Plain Layout
-The salinity source minus sink term is derived via relaxation towards a
- depth- and time-resolved timeseries on a 7-day timescale, which allows
- salinity profiles to respond to storm events (2-3 days) but preserves the
- seasonal evolution of the salinity field.
- Observed winds are translated to surface wind stresses using the bulk formulae
- of 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "large1981open"
-
-\end_inset
-
-.
- Latent and sensible heat fluxes (source minus sink term for temperature)
- are calculated from the wind speed, air-sea temperature difference, and
- dew point temperature using the bulk formulae of 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "friehe1976parameterization"
-
-\end_inset
-
-.
- Longwave radiation losses are calculated using the Efimova formula, per
- 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "simpson1979mid"
-
-\end_inset
-
-.
- We assume 45% of the incoming shortwave radiation is photosynthetically
- available, with a background attenuation of 0.15 m
-\begin_inset Formula $^{-1}$
-\end_inset
-
-; self-shading by phytoplankton is applied within the primary production
- calculations but does not feed back to the physical state variables.
- Mixing is calculated following the Mellor-Yamada 2.5 algorithm with a background
- diffusivity of 
-\begin_inset Formula $1.0\times10^{-4}$
-\end_inset
-
- m
-\begin_inset Formula $^{2}$
-\end_inset
-
-s
-\begin_inset Formula $^{-1}$
-\end_inset
-
-, over a water column of 500 m depth with a vertical grid spacing of 10
- m
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Note Note
-status open
-
-\begin_layout Plain Layout
-TODO: Add this to biological section
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsection
 Input variables for the Eastern Subarctic Gyre
 \end_layout
@@ -2080,7 +1752,7 @@ Physical and biological ODEs are solved consecutively for the biological
  where applicable, following the same formulation as 
 \begin_inset CommandInset ref
 LatexCommand formatted
-reference "eq:dT"
+reference "eq:dT-1"
 
 \end_inset
 
@@ -2669,10 +2341,6 @@ Mor_{i}=\left(\frac{M_{0i}}{B_{i}'^{(c_{i}-1)}}\right)\cdot B_{i}^{c_{i}}
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 while for nektonic groups it is in units of mass per area:
 \end_layout
 
@@ -2701,10 +2369,6 @@ Mor_{i}=\frac{{MorI_{i}}}{\Delta z_{1}}
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 when 
 \begin_inset Formula $i$
 \end_inset
@@ -2823,10 +2487,6 @@ Dec_{ij}=V_{Dec,ij}\exp(K_{Dec,ij}T)\cdot B_{i}
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 where the subscripts 
 \begin_inset Formula $i$
 \end_inset
