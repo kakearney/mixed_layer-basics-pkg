@@ -201,6 +201,8 @@ function varargout = ecopathlite(S)
 % Copyright 2012 Kelly Kearney
 % kakearney@gmail.com
 
+debugflag = true;
+
 %------------------------------
 % Setup
 %------------------------------
@@ -218,10 +220,11 @@ S = ecopathinputcheck(S, true);
 islive = (1:S.ngroup)' <= S.nlive; % Logical mask for live groups
 
 % If emigration and biomass is given as an input rather than emigration per
-% unit biomass (i.e. emigration rate), calculate the rate 
+% unit biomass (i.e. emigration rate), calculate the rate, and vice versa.
+% Same for BA.
 
-temp = (S.emig(islive) > 0) & ~isnan(S.b(islive)) & (S.emigRate(islive) == 0);
-S.emigRate(temp) = S.emig(temp) .* S.b(temp);
+[S.emig, S.emigRate, S.ba, S.baRate] = ...
+    convertrates(S.emig, S.emigRate, S.ba, S.baRate, islive, S.b);
 
 % Calculate growth efficiency (i.e. production/consumption ratio),
 % production/biomass ratio, and consuption/biomass ratio if needed and
@@ -252,23 +255,41 @@ isPredNoCannib = ispred & ~eye(S.ngroup);
 % missing variables
 %--------------------------
 
-flag = false;
+if debugflag
+    count = 0;
+end
+
+failedtofill = false;
 while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
 
+    if debugflag
+        count = count + 1;
+        fprintf('Iteration %d\n', count);
+    end
+    
     param = [S.b S.pb S.qb S.ee S.ge];
     
     % Run the p-b-q algebra again (in case new values have been filled in)
     
     [S.pb, S.qb, S.ge] = pbq(S.pb, S.qb, S.ge, islive);
     
-    % Algorithm 1: Estimation of P/B
+    % Run the BA/Emig rate-to-total calcs again (in case new b has been
+    % filled in)
+    
+    [S.emig, S.emigRate, S.ba, S.baRate] = ...
+    convertrates(S.emig, S.emigRate, S.ba, S.baRate, islive, S.b);
+
+    nm = S.emig - S.immig;
+    
+    %-----------------------
+    % Algorithm 1: 
+    % Estimation of P/B
+    %-----------------------
 
     knowPredInfo = ~any(bsxfun(@and, ispred, isnan(S.b))) & ...
                    ~any(bsxfun(@and, ispred, isnan(S.qb)));
     
     m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); 
-
-    nm = calcnetmigration(S.emigRate, S.emig, S.immig);
     
     canRun = (islive & ...          % only live groups           
               isnan(S.pb) & ...     % P/B unknown
@@ -278,14 +299,24 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
       
     S.pb(canRun) = (catches(canRun) + nm(canRun) + S.ba(canRun) + ...
                     m2(canRun))./(S.b(canRun) .* S.ee(canRun)); 
+                
+    if debugflag
+        if any(canRun)
+            idx = find(canRun);
+            str = sprintf('%d,', idx);
+            fprintf(' A1: %s\n', str(1:end-1));
+        end
+    end
     
-    % Algorithm 2: Estimation of EE
+    %-----------------------
+    % Algorithm 2: 
+    % Estimation of EE
+    %-----------------------
     
     knowPredInfo = ~any(bsxfun(@and, ispred, isnan(S.b))) & ...
                    ~any(bsxfun(@and, ispred, isnan(S.qb)));
     
     m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); 
-    nm = calcnetmigration(S.emigRate, S.emig, S.immig);
     
     canRun = (islive & ...          % only live groups           
               isnan(S.ee) & ...     % EE unknown
@@ -295,29 +326,45 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
 
     S.ee(canRun) = (catches(canRun) + nm(canRun) + S.ba(canRun) + ...
                     m2(canRun))./(S.b(canRun) .* S.pb(canRun)); 
+                
+    if debugflag
+        if any(canRun)
+            idx = find(canRun);
+            str = sprintf('%d,', idx);
+            fprintf(' A2: %s\n', str(1:end-1));
+        end
+    end
     
-    % Algorithm 3: Dealing with B and Q/B as unknowns (Note: never found
-    % model that needs this, so never tested)
-    
+    %-----------------------
+    % Algorithm 3: Dealing 
+    % with B and Q/B as 
+    % unknowns  
+    %-----------------------
+
+    % It's never stated in the docs, but the prey group k for which B, PB,
+    % EE, and predator info needs to be know cannot be a detrital group (or
+    % at least, that seems to lead to incorrect results). To date, I've
+    % never found model that needs this algorithm, so it remains untested.
+
     knowPredInfo = ~any(bsxfun(@and, isPredNoCannib, isnan(S.b))) & ...
                    ~any(bsxfun(@and, isPredNoCannib, isnan(S.qb)));
-    
-               
+
+
     knowAllPreyInfo = bsxfun(@and, isprey, ~isnan(S.b)) & ...
                       bsxfun(@and, isprey, ~isnan(S.pb)) & ...
                       bsxfun(@and, isprey, ~isnan(S.ee)) & ...
                       bsxfun(@and, isprey, knowPredInfo);
-    
-    
+
+
     canRun = (islive & ...                          % only live groups
               (( isnan(S.b) & ~isnan(S.qb)) | ...   % B unknown & Q/B known
                (~isnan(S.b) &  isnan(S.qb))) & ...  % or B known & Q/B unknown
               knowPredInfo' & ...                   % know B and Q/B of predators except itself
-              any(knowAllPreyInfo, 1)');     % know B, P/B, EE, and pred info (except group) for at least one prey
-          
+              any(knowAllPreyInfo(islive,:), 1)');  % know B, P/B, EE, and pred info (except group) for at least one live prey    
+
     group1 = canRun & isnan(S.b); % B unknown groups
     group2 = canRun & ~group1;    % Q/B unknown groups
-    
+
     ng = length(S.b);
     k = zeros(ng,1);
     idxknowprey = find(any(knowAllPreyInfo, 1));
@@ -327,39 +374,50 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
     iitmp = (1:ng)';
     idx = ones(ng,1); % This is just to avoid 0 subscripts in testing; we won't actually use the placeholders
     idx(idxknowprey) = sub2ind([ng ng], k(idxknowprey), iitmp(idxknowprey));
-    
+
     partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
     m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); % all predation
-    nm = calcnetmigration(S.emigRate, S.emig, S.immig);
+
     dcii = diag(S.dc);
     dcik = S.dc(idx);
-    
+
     S.b(group1) = partm2(group1) + catches(group1) + nm(group1) + ...
                   dcii(group1) .*(S.b(k(group1)) .* S.pb(k(group1)) .* ...
                   S.b(k(group1)) .* S.ee(k(group1)) - catches(k(group1)) - ...
                   nm(k(group1)) - m2(k(group1)))./dcik(group1);
-    
+
     S.qb(group2) = (S.b(k(group2)) .* S.pb(k(group2)) .* S.b(k(group2)) .* ...
                    S.ee(k(group2)) - catches(k(group2))) ./ ...
                    (dcik(group2) ./ S.b(group2));
-    
-    % Algorithm 4: Estimating biomasses only
-    
+
+    if debugflag
+        if any(canRun)
+            idx = find(canRun);
+            str = sprintf('%d,', idx);
+            fprintf(' A3: %s\n', str(1:end-1));
+        end
+    end
+
+    %-----------------------
+    % Algorithm 4: 
+    % Estimating biomasses 
+    % only
+    %-----------------------
+
     knowPredInfo = ~any(bsxfun(@and, isPredNoCannib, isnan(S.b))) & ...
                    ~any(bsxfun(@and, isPredNoCannib, isnan(S.qb)));
-    
-    
+
+
     canRun = (islive & ...          % only live groups
               isnan(S.b) & ...      % B unknown
               ~isnan(S.pb) & ...    % P/B known
               ~isnan(S.ee) & ...    % EE known
               ~isnan(S.qb) & ...    % Q/B known
               knowPredInfo');       % B and Q/B of predators except itself known
-    
+
     partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
-    nm = calcnetmigration(S.emigRate, S.emig, S.immig);
     dcCannib = diag(S.dc);
-    
+
     cannibCheck1 = canRun & (S.pb .* S.ee) == (S.qb .* dcCannib);
     cannibCheck2 = canRun & (S.pb .* S.ee) < (S.qb .* dcCannib);
     if any(cannibCheck1)
@@ -376,27 +434,177 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         warning('EWE:cannibalTooHigh', 'Group(s) (%s) have cannibalism losses that exceed predation mortality\nExiting without solution', idxStr); 
         break
     end
-    
+
     S.b(canRun) = (catches(canRun) + nm(canRun) + S.ba(canRun) + ...
                    partm2(canRun)) ./ (S.pb(canRun) .* S.ee(canRun) - ...
                    S.qb(canRun) .* dcCannib(canRun));
-               
-    % Algorithm 5: The generalized inverse
+
+    if debugflag
+        if any(canRun)
+            idx = find(canRun);
+            str = sprintf('%d,', idx);
+            fprintf(' A4: %s\n', str(1:end-1));
+        end
+    end
     
-    % TODO: Not really clear on when this is used, or how.  Is X the same
-    % as B in these equations?  And is this a necessary step, or just a
-    % rephrasing of algorithms 3 & 4?
+    % Only try to fill B and QB if we've done all we can with the first 4
+    % algorithms
+    
+    nochange = isequaln(param, [S.b S.pb S.qb S.ee S.ge]);
+    if nochange
+        
+        %-----------------------
+        % Algorithm 5: The 
+        % generalized inverse.
+        %-----------------------
+        
+        tmp = [S.b S.qb S.pb S.ee];
+        
+        nmissing = sum(isnan(tmp(:)));
+        
+        
+        Q = nan(S.ngroup,1);
+        A = nan(S.ngroup);
+        Atxt = cell(S.ngroup);
+        Qtxt = cell(S.ngroup,1);
+        xvar = cell(S.ngroup,1); % X matrix solves for either B or QB; this 
+                                 % marks which
+
+        
+        % Building A
+        % a) PBj or EEj unknown: drop these equations from A, X, and Q
+
+        isa = isnan(S.pb) | isnan(S.ee);
+
+        % b) Bj and QBj both unknown: If algorithm 3 failed, then this is
+        %    unsolvable... error
+
+        isb = isnan(S.b) & isnan(S.qb);
+        if any(isb)
+            idx = find(isb);
+            str = sprintf('%d,', idx);
+            error('Missing B and QB for group(s) (%s); cannot solve', str(1:end-1));
+        end
+
+        % c) Only Bj is unknown
+
+        for ii = 1:S.ngroup
+            for jj = 1:S.ngroup
+                if isnan(S.b(jj))
+                    if ii == jj
+                        A(ii,jj) = S.pb(jj) .* S.ee(jj) - S.qb(jj) .* S.dc(jj,ii);
+                        Atxt{ii,jj} = sprintf('PB_%d * EE_%d - QB_%d * DC_%d,%d', jj, jj, jj, jj, ii);
+                    else
+                        A(ii,jj) = -S.qb(jj) .* S.dc(jj,ii);
+                        Atxt{ii,jj} = sprintf('-QB_%d * DC_%d,%d', jj, jj, ii);
+                    end
+                    xvar{jj} = 'B';
+                end
+            end
+        end
+
+        % d) only QBj is unknown
+
+        for ii = 1:S.ngroup
+            for jj = 1:S.ngroup
+                if isnan(S.qb(jj))
+                    A(ii,jj) = -S.b(jj) .* S.dc(jj,ii);
+                    Atxt{ii,jj} = sprintf('-B_%d * DC_%d,%d', jj, jj,ii);
+                    xvar{jj} = 'QB';
+                end
+            end
+        end
+
+        % The Q matrix
+
+        ex = catches + S.ba + S.emig - S.immig;
+        qij = zeros(S.ngroup);
+        
+%         is1 = repmat(isnan(S.b'), S.ngroup, 1);
+%         is2 = repmat(isnan(S.qb'), S.ngroup, 1);
+%         is3 = bsxfun(@and, ~isnan(S.b') & ~isnan(S.qb'), isnan(S.b));
+%         is4 = bsxfun(@and,  ~isnan(S.b) & ~isnan(S.qb), eye(S.ngroup));
+%         
+%         q1 = zeros(S.ngroup); 
+%         q2 = repmat(-S.b' .* S.pb' .* S.ee', S.ngroup, 1); % I think?  Paper says QBj, but that doesn't make sense... EwE6 code used PBj
+%         q3 = bsxfun(@times, S.dc', S.b'.*S.qb');
+%         q4 = bsxfun(@minus, bsxfun(@times, S.dc, S.b.*S.qb), S.b.*S.pb.*S.ee);
+%         
+%         qij(is1) = q1(is1);
+%         qij(is2) = q2(is2);
+%         qij(is3) = q3(is3);
+%         qij(is4) = q4(is4);
+        
+        for ii = 1:S.ngroup
+            for jj = 1:S.ngroup
+                
+                if isnan(S.qb(jj))
+                    qij(ii,jj) = -S.b(jj).*S.pb(jj).*S.ee(jj); % I think?  Paper says QBj, but that doesn't make sense... EwE6 code used PBj
+                elseif isnan(S.b(ii)) && ~isnan(S.b(jj)) && ~isnan(S.qb(jj))
+                    qij(ii,jj) = S.b(jj) .* S.qb(jj) .* S.dc(jj,ii);
+                elseif ~isnan(S.b(ii)) && ~isnan(S.qb(ii)) && ii == jj
+                    qij(ii,jj) = S.b(ii).*S.qb(ii).*S.dc(ii,jj) - S.b(ii).*S.pb(ii).*S.ee(ii);
+                elseif isnan(S.b(jj))
+                    qij(ii,jj) = 0;
+                end
+            end
+        end
+        Q = ex + sum(qij,2);
+        Q(isa) = 0;
+
+        % Solve the inverse
+        
+        keeprow = catches >= 0 & ~isnan(S.pb) & any(~isnan(A) | A~=0, 2);
+        keepcol = ~all(isnan(A),1);
+        
+        A = A(keeprow, keepcol);
+        Q = Q(keeprow);
+        X = A\Q;
+        
+        idx = find(keepcol);
+        isb = strcmp(xvar(idx), 'B');
+        S.b(idx(isb)) = X(isb);
+        S.qb(idx(~isb)) = X(~isb);
+
+% %         idx = find(~isa & ~cellfun('isempty', xvar));
+%         idx = any(isnan(tmp),2);
+%         if ~isempty(idx)
+%             A = A(idx,idx);
+%             Q = Q(idx);
+%             xvar = xvar(idx);
+% 
+%             X = A\Q;
+% 
+%             % Substitute back
+% 
+%             isb = strcmp(xvar, 'B');
+%             S.b(idx(isb)) = X(isb);
+%             isqb = strcmp(xvar, 'QB');
+%             S.qb(idx(isqb)) = X(isqb);
+            
+            
+        if debugflag
+            str = sprintf('%d,', idx);
+            fprintf(' A5: %s\n', str(1:end-1));
+        end
+            
+    end
     
     % If we made it through all algorithms without filling in any new
     % numbers, break out of loop
     
-    if isequalwithequalnans(param, [S.b S.pb S.qb S.ee S.ge])
+    nochange = isequaln(param, [S.b S.pb S.qb S.ee S.ge]);
+    
+    if nochange
         warning('EWE:unknownsremain', 'Unable to fill in all unknowns');
-        flag = true;
+        failedtofill = true;
         break
     end
     
 end
+
+
+% Fill in biomass-in-habitat-area
 
 needBh = isnan(S.bh) & ~isnan(S.b);
 S.bh(needBh) = S.b(needBh) ./ S.areafrac(needBh);
@@ -441,20 +649,45 @@ q0(~islive, ~islive) = 0;                   % Fixes detritus ee calc (no NaN)
 
 deteaten = sum(q0(~islive,:),2)';  
 
-% Calculate BA of detritus (based on detritus fate of detritus groups)
-% For now, I'm ignoring this and assuming that all surplus detritus is
-% exported from the system, as in my test cases. 
-
-detsurplus = inputtodet - deteaten;         % surplus in each detritus group
-ba(~islive) = detsurplus' .* S.df(~islive); % where surplus goes
-
 % Respiration
 
+temp = zeros(size(S.pp));
 temp(S.pp < 1)  = 1 - S.pp(S.pp < 1);
 temp(S.pp >= 1) = 1;
 
 respiration = S.b .* S.qb - temp .* (S.ee .* S.b .* S.pb + flowtodet(1:S.ngroup));
 respiration(S.pp >= 1) = 0;
+
+% Fate of detritus: surplus detritus (i.e. not eaten) goes either to other
+% detritus groups, to self (as biomass accumulation), or is exported from
+% the system.
+
+% TODO: Still not right for detritus groups
+% Note: Inclusion of respiration confuses me... isn't that always 0 for
+% detritus?  Also, in CalcBAofDetritus, they redefine Surplus (my
+% detsurplus) as inputtodet - deteaten - fCatch, to account for a model
+% that included catch of a detritus group, later discarded to a different
+% detritus group.  Not sure why they didn't make that change in
+% CalcFateOfDetritus too; for now I'm leaving it out (seems like an odd
+% edge case anyway).
+
+detsurplus = inputtodet - deteaten - respiration(~islive)';   % surplus in each detritus group
+surplusfate = bsxfun(@times, S.df(~islive,:), detsurplus');
+
+isself = eye(size(surplusfate));
+surplusfateself = diag(surplusfate);
+surplusfate     = surplusfate .* ~isself; % set diagnonal to 0
+
+inputtodet = inputtodet + sum(surplusfate, 1);
+detpassedon = sum(surplusfate,2);
+
+det(~islive,:) = surplusfate;
+flowtodet = sum(det, 2); % flowtodet(~islive) = detpassedon;
+q0(~islive,~islive) = surplusfate;
+
+% surplus = inputtodet - deteaten - fcatch(~islive)'; % Mostly same as detsurplus above, but apparently some models inlcude "catch" of detritus, redirected to other detritus groups
+% S.ba(~islive) = surplus' .* S.df(~islive); % where surplus goes
+S.ba(~islive) = surplusfateself;
 
 % EE of detritus
 
@@ -464,19 +697,26 @@ S.ee(needdetee) = tempee(needdetee);
 
 % Export of detritus
 
-detexport = inputtodet' - deteaten' - S.ba(S.nlive+1:end) - respiration(S.nlive+1:end);
+hasexport = sum(S.df(~islive,:),2) < 1;
+baDet = S.ba(~islive);
+respDet = respiration(~islive);
+detexport = zeros(S.ngroup-S.nlive,1);
+detexport(hasexport) = inputtodet(hasexport)' - deteaten(hasexport)' - ...
+    baDet(hasexport) - detpassedon(hasexport) - respDet(hasexport);
 
 %--------------------------
 % Other
 %--------------------------
 
-migration = S.immig - S.emigRate;
+% migration = S.immig - S.emigRate;
+migration = S.emig - S.immig;
 migrationRate = migration ./ S.b;
 
 S.baRate = S.ba./S.b;
 
 %fishMortRate = sum(landing - discard, 2) ./ b;
-fishMortRate = bsxfun(@rdivide, S.landing-S.discard, S.b); % fishing rate per biomass by gear
+
+fishMortRate = bsxfun(@rdivide, catches, S.b); % fishing rate per biomass by gear
 
 predMort = S.dc * (S.qb .* S.b);                  % total for each group, M2*B in documentation
 predMortRate = predMort ./ S.b;                   % rate wrt biomass of prey, M2 in documentation
@@ -548,7 +788,7 @@ elseif nargout == 1
     varargout{1} = C;
 elseif nargout == 2
     varargout{1} = C;
-    varargout{2} = flag;
+    varargout{2} = failedtofill;
 end
 
 %************************** Subfunctions **********************************
@@ -584,13 +824,16 @@ end
 % for each group
 %---------------------------
 
-function nm = calcnetmigration(emigRate, emig, immig)
-
-temp = emig > 0 & emigRate == 0;
-emigtemp = zeros(size(emig));
-emigtemp(temp) = emig(temp);
-
-nm = emigtemp - immig;
+% function nm = calcnetmigration(emigRate, emig, immig)
+% 
+% % Note: Not entirely positive, but I think when I added the emig/emigRate
+% % syncing, this became unnecessary
+% % temp = emig > 0 & emigRate == 0;
+% % emigtemp = zeros(size(emig));
+% % emigtemp(temp) = emig(temp);
+% % 
+% % nm = emigtemp - immig;
+% nm = emig - immig;
 
 %---------------------------
 % Determine whether B, P/B, 
@@ -657,6 +900,31 @@ knowall = ~any(isnan(b)) && ...
           ~any(isnan(ee(islive))) && ...
           ~any(isnan(ge(pp == 0)));
 
+%---------------------------
+% Rate-to-total conversions
+%---------------------------  
+      
+function [em, emRate, ba, baRate] = convertrates(em, emRate, ba, baRate, islive, b)
+
+% NOTE: In previous versions of this code, I seemed to be using reverse
+% terminology for emig vs emigRate (calcs were right, though)... not sure
+% whether that was a mistake on my part or a convention I stole from the
+% EwE6 code, but either way it was really confusing me, so I've switched
+% back.
+
+if any(isnan(b) & (emRate > 0 | baRate > 0))
+    warning('Missing b combined with assigned Emigration and/or BA rate: This scenario may not work... check');
+end
+
+e2er   = islive & (em > 0) & ~isnan(b) & (emRate == 0);
+er2e   = islive & ~isnan(b) & (emRate > 0) & (em == 0);
+ba2bar = islive & (ba > 0) & ~isnan(b) & (baRate == 0);
+bar2ba = islive & ~isnan(b) & (baRate > 0) & (ba == 0);
+
+emRate(e2er) = em(e2er) ./ b(e2er);
+em(er2e) = emRate(er2e) .* b(er2e);
+baRate(ba2bar) = ba(ba2bar) ./ b(ba2bar);
+ba(bar2ba) = baRate(bar2ba) .* b(bar2ba);
                             
                         
                         
