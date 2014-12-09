@@ -3,7 +3,7 @@ function varargout = ecopathlite(S)
 %
 % ecopathlite(S)
 % C = ecopathlite(S)
-% [C, flag] = ecopathlite(S)
+% [C, flag, fillinfo, sc] = ecopathlite(S)
 %
 % This function reproduces the main calculations performed by the Ecopath
 % portion of the EwE model (www.ecopath.org).  If no output variable is
@@ -193,12 +193,23 @@ function varargout = ecopathlite(S)
 %       detexport:      (ngroup-nlive) x 1 array, amount of detritus
 %                       exported from the system (M A^-1 T^-1)
 %
-%   flag:   false if all unknowns are filled, true if not.  This output was
-%           primarily added for testing purposes.  Unfilled unknowns are
-%           usually due to incorrect input, but may point to a bug in this
-%           implementation of the Ecopath algorithm.
+%   flag:       false if all unknowns are filled, true if not.  This output
+%               was primarily added for testing purposes.  Unfilled
+%               unknowns are usually due to incorrect input, but may point
+%               to a bug in this implementation of the Ecopath algorithm.
+%
+%   fillinfo:   dataset array indicating which algorithm (see Appendix 4 
+%               of the EwE User's Manual) is used to fill in each value,
+%               and on which iteration it was filled.  Also primarily for
+%               testing purposes.
+%
+%   sc:         Sanity check calculation that list the main terms of the
+%               Ecopath equation for each group.  Columns correspond to
+%               Bi*PBi*EEi, B1*QB1*DC1i, B2*QB2*DCi2, ... Yi, Ei, BAi.  The
+%               last column is the sum of each row, and should sum to 0 (or
+%               very close, near machine precision).
 
-% Copyright 2012 Kelly Kearney
+% Copyright 2012-2014 Kelly Kearney
 % kakearney@gmail.com
 
 debugflag = nargout > 1;
@@ -725,10 +736,8 @@ if nargout == 0
     displayecopath(S,C);
 elseif nargout == 1
     varargout{1} = C;
-elseif nargout == 2
-    varargout{1} = C;
-    varargout{2} = failedtofill;
-elseif nargout == 3
+elseif nargout > 1
+
     isfilled = ~isnan(fillalgo);
     [ig,ivar] = find(isfilled);
     var = {'B','PB','QB','EE','GE'}';
@@ -736,10 +745,9 @@ elseif nargout == 3
                        {ig, 'Group'}, ...
                        {fillalgo(isfilled), 'Algorithm'}, ...
                        {filliter(isfilled), 'Iteration'});
-    
-    varargout{1} = C;
-    varargout{2} = failedtofill;
-    varargout{3} = fillinfo;
+                   
+    tmp = {C, failedtofill, fillinfo, sanitycheck(S)};
+    varargout = tmp(1:nargout);
 end
 
 %************************** Subfunctions **********************************
@@ -803,7 +811,7 @@ ba(bar2ba) = baRate(bar2ba) .* b(bar2ba);
 % balancing properly?
 %---------------------------           
 
-function sanitycheck(S)
+function allterms = sanitycheck(S)
 
 qtmp = bsxfun(@times, S.b' .* S.qb', S.dc);
 qtmp(S.dc == 0) = 0; 
@@ -815,7 +823,8 @@ catches = sum(S.landing + S.discard, 2);
 % Last displayed column should be all 0s
 
 allterms = [S.b.*S.pb.*S.ee -qtmp -catches -S.emig S.immig -S.ba];
-disp(roundn([allterms sum(allterms,2)], -4));
+allterms = [allterms sum(allterms,2)];
+% disp(roundn([allterms sum(allterms,2)], -4));
 
         
                         
