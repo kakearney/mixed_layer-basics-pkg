@@ -294,11 +294,7 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
 
     % Total export
     
-    ex = catches + S.emig - S.immig; % + S.ba; 
-    
-    % ??? Why no BA? I can only reproduce EwE6 results if I drop BA here,
-    % but that doesn't make sense.  And the results don't technically
-    % balance.  Is this a bug in EwE6?
+    ex = catches + S.emig - S.immig + S.ba; 
     
     %-----------------------
     % Algorithm 1: 
