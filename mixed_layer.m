@@ -319,12 +319,16 @@ if In.verbose
 end
 
 % Add path to biomodules directory (assumes biomodules directory is located
-% in same folder as mixed_layer.m)
+% in same folder as mixed_layer.m).
+%
+% Update: In preparation for public distribution, the file structure has
+% been altered.  I now assume all folders in the package are already on the
+% user's path.
 
-userpath = path;
-mlname = mfilename('fullpath');
-mlpath = fileparts(mlname);
-addpath(fullfile(mlpath, 'biomodules'));
+% userpath = path;
+% mlname = mfilename('fullpath');
+% mlpath = fileparts(mlname);
+% addpath(fullfile(mlpath, 'biomodules'));
 
 %--------------------------
 % Initialization
