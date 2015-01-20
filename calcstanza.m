@@ -134,7 +134,7 @@ for is = 1:ns
         figure;
 
         [hl, ha] = plots(xa', [w l w.*l]);
-        xyrefline(a, [],'parent', ha(1));
+        gridxy(a, [],'parent', ha(1));
         cmap = cptcmap('Set1_09');
         col = num2cell(cmap(1:length(hl),:),2);
         set(hl, {'color'}, col);
