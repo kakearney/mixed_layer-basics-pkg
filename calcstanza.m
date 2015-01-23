@@ -1,4 +1,4 @@
-function A = calcstanza(A)
+0function A = calcstanza(A)
 % CALCSTANZA Calculate B and Q/B values for multi-stanza Ecopath groups
 %
 % A = calcstanza(In)
@@ -135,7 +135,7 @@ for is = 1:ns
 
         [hl, ha] = plots(xa', [w l w.*l]);
         gridxy(a, [],'parent', ha(1));
-        cmap = cptcmap('Set1_09');
+        cmap = get(0, 'DefaultAxesColorOrder');
         col = num2cell(cmap(1:length(hl),:),2);
         set(hl, {'color'}, col);
         set(ha, {'ycolor'}, col);
