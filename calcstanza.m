@@ -1,4 +1,4 @@
-0function A = calcstanza(A)
+function A = calcstanza(A)
 % CALCSTANZA Calculate B and Q/B values for multi-stanza Ecopath groups
 %
 % A = calcstanza(In)
