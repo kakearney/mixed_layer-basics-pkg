@@ -9,6 +9,15 @@ function A = ecopathinputcheck(A, warnoff)
 % non-zero values for a primary producer's consumption/biomass ratio), the
 % values are corrected.
 %
+% A note on multi-stanza groups: As noted in calcstanza.m, I do not always
+% exactly reproduce the values of B and QB seen in EwE6.  For this reason,
+% this function checks that multi-stanza group values are within 0.05% of
+% the values calculated by my algorithm.  If B or QB data are missing for
+% non-leading stanzas, that data is filled in.  If a stanza group has
+% a biomass value outside the 0.05% error range, the biomass values for all
+% stanzas of that particular group are recalculated and replaced; likewise
+% for QB values.  Otherwise, they are left alone.
+%
 % Input variables:
 %
 %   A:          Ewe input structure
@@ -191,6 +200,49 @@ if isfield(A, 'kv')
     end
 end
     
+%----------------------------
+% Check multi-stanza values
+%----------------------------
+
+% Check that multi-stanza group values are consistent with each other if
+% filled in already.  Fill in if not.
+
+if isfield(A, 'stanzadata')
+    Tmp = calcstanza(A);
+    
+    % If non-leading stanza group data was missing, fill it in (all or
+    % nothing... if one stanza-group is missing, all other stanzas of that
+    % group need to be recalculated)
+    
+    bfill = isnan(A.b) & ~isnan(Tmp.b);
+    bchange = ismember(A.stanza, unique(A.stanza(bfill)));
+    A.b(bchange) = Tmp.b(bchange);
+    qfill = isnan(A.qb) & ~isnan(Tmp.qb);
+    qchange = ismember(A.stanza, unique(A.stanza(qfill)));
+    A.qb(qchange) = Tmp.qb(qchange);
+    
+    % Check for any other changes.  Keep original data if it's within my
+    % tolerance (meaning probably correct, just picking up the differences
+    % between my implementation of the staza calculations vs EwE6's
+    % implementation).  If it's further off, assume incorrect data, and
+    % replace data for all stanzas of that group.
+    
+    berr = (Tmp.b - A.b)./A.b;
+    qerr = (Tmp.qb - A.qb)./A.qb;
+    
+    tol = 0.005;
+    bwrong = abs(berr) > tol;
+    qwrong = abs(qerr) > tol;
+    if any([bwrong; qwrong])
+        warning('Multi-stanza group data inconsistent; replacing');
+        bchange = ismember(A.stanza, unique(A.stanza(bwrong)));
+        A.b(bchange) = Tmp.b(bchange);
+        qchange = ismember(A.stanza, unique(A.stanza(qwrong)));
+        A.qb(qchange) = Tmp.qb(qchange);
+    end    
+end
+
+
     
     
     
