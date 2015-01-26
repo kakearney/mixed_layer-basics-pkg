@@ -21,7 +21,7 @@ function A = ecopathinputcheck(A, warnoff)
 %   B:          structure identical to A but with corrections made if
 %               necessary.
 
-% Copyright 2008 Kelly Kearney
+% Copyright 2008-2015 Kelly Kearney
 
 if nargin < 2
     warnoff = false;
