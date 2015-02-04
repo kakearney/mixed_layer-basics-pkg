@@ -358,8 +358,7 @@ nx = size(x,1);
 ncol = cellfun(@length, idx);
 x = mat2cell(x, nx, ncol);
 
-[NewIn,x] = subecopathens(Ewein, x, idx);
-Ep = arrayfun(@ecopathlite, NewIn);
+Ep = ecopathlite(Ewein, 'x', x, 'idx', idx, 'skipextra', true, 'silent', true);
 
 isbal = all([Ep.ee] <= 1 & [Ep.ee] >= 0 & ~isnan([Ep.ee]) & ...
             [Ep.ge] >= 0 & [Ep.ge] <= 1, 1);
