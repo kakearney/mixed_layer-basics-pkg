@@ -1,13 +1,13 @@
-function varargout = ecopathlite(S)
+function varargout = ecopathlite(S, varargin)
 %ECOPATHLITE Rewrite of Ecopath algorithms
 %
 % ecopathlite(S)
 % C = ecopathlite(S)
 % [C, flag, fillinfo, sc] = ecopathlite(S)
+% [C, CE] = ecopathlite(S, 'x', x, 'idx', idx, ...)
 %
 % This function reproduces the main calculations performed by the Ecopath
-% portion of the EwE model (www.ecopath.org).  If no output variable is
-% provided, the results are printed to tables in the command window. 
+% portion of the EwE model (www.ecopath.org).  
 %
 % Ecopath is used to calculate a snapshot of an ecosystem, including the
 % biomass of all functional groups (living groups, fishing gears, and
@@ -17,9 +17,9 @@ function varargout = ecopathlite(S)
 % any of the visual checks on the results (e.g. whether EE values are > 1,
 % etc); use the original Ecopath software if you're looking for this type
 % of behavior.  Nor does it include many of the more complicated setup
-% options: multi-stanza groups, economic variables (e.g. market prices,
-% fleet dynamics), etc.  It simply provides the initial mass-balance
-% calculations, in a stripped-down, easy-to-automate format.
+% options, such as economic variables (e.g. market prices, fleet dynamics),
+% etc.  It simply provides the initial mass-balance calculations, in a
+% stripped-down, easy-to-automate format.  
 %
 % The units below are defined in terms of three variables: M = mass, A =
 % area (or volume), and T = time. In the original software, the default is
@@ -28,7 +28,9 @@ function varargout = ecopathlite(S)
 % across all variables.  
 %
 % Input and output variables were chosen to be somewhat consistent with the
-% tables seen in Ecopath with Ecosim version 5.
+% tables seen in Ecopath with Ecosim version 5.  If no output variable is
+% provided, the results are printed in the command window, mimicing the
+% Basic Estimates table from EwE.
 %
 % For more information on the Ecopath concept, see:
 %
@@ -42,177 +44,231 @@ function varargout = ecopathlite(S)
 % Note: I developed this code based on the equations documented in
 % Appendix 4 of the EwE5 help files (this appendix is referenced in the EwE
 % User's Guide, but only seems to be available through the help menu of
-% EwE5).
+% EwE5), and continue to add updates based on the EwE6 source code.
 %
 % Input variables:
 %
-%   S:  structure with the following fields.  Values of the fields b, pb,
-%       qb, ee, ge, gs, and/or dtImp that are defined as NaN indicate
-%       unknown values, which will be filled in by the ecopath algorithm.
+%   S:          structure with the following fields.  Values of the fields
+%               b, pb, qb, ee, ge, gs, and/or dtImp that are defined as NaN
+%               indicate unknown values, which will be filled in by the
+%               ecopath algorithm.
 % 
-%       ngroup:         1 x 1 array, number of functional groups in the
-%                       model
+%               ngroup:         1 x 1 array, number of functional groups in
+%                               the model 
 %
-%       nlive:          1 x 1 array, number of live (non-detrital) groups
-%                       in the model  
+%               nlive:          1 x 1 array, number of live (non-detrital)
+%                               groups in the model    
 %
-%       ngear:          1 x 1, number of fishing gear types in the model
+%               ngear:          1 x 1, number of fishing gear types in the
+%                               model 
 %
-%       areafrac:       ngroup x 1 array, fraction of habitat area occupied
-%                       by each group (no units, 0-1)
+%               areafrac:       ngroup x 1 array, fraction of habitat area
+%                               occupied by each group (no units, 0-1) 
 %
-%       b:              ngroup x 1 array, biomass (M A^-1)
+%               b:              ngroup x 1 array, biomass (M A^-1)
 %
-%       pb:             ngroup x 1 array, production over biomass ratios
-%                       (T^-1) 
+%               pb:             ngroup x 1 array, production over biomass
+%                               ratios (T^-1)   
 %   
-%       qb:             ngroup x 1 array, consumption over biomass ratios
-%                       (T^-1) 
+%               qb:             ngroup x 1 array, consumption over biomass
+%                               ratios (T^-1) 
 %
-%       ee:             ngroup x 1 array, ecotrophic efficiencies (no
-%                       units, 0-1) 
+%               ee:             ngroup x 1 array, ecotrophic efficiencies
+%                               (no units, 0-1) 
 % 
-%       ge:             ngroup x 1 array, gross efficiency, i.e. production
-%                       over consumption ratio (no units)
+%               ge:             ngroup x 1 array, gross efficiency, i.e.
+%                               production over consumption ratio (no
+%                               units)
 %
-%       gs:             ngroup x 1 array, fraction of consumed food that is
-%                       not assimilated (no units)
+%               gs:             ngroup x 1 array, fraction of consumed food
+%                               that is not assimilated (no units)  
 %
-%       dtImp:          ngroup x 1 array, detritus import (should be zero
-%                       for all non-detrital groups) (M A^-1 T^-1)
+%               dtImp:          ngroup x 1 array, detritus import (should
+%                               be zero for all non-detrital groups) (M
+%                               A^-1 T^-1)
 %
-%       bh:             ngroup x 1 array,  habitat biomass, i.e. biomass
-%                       per unit habitable area (M A^-1). This variable
-%                       is designed as a shortcut if all your critters are
-%                       clustered in only a small portion of the habitat
-%                       area, such that bh = b/areafrac.
+%               bh:             ngroup x 1 array,  habitat biomass, i.e.
+%                               biomass per unit habitable area (M A^-1).
+%                               This variable is designed as a shortcut if
+%                               all your critters are clustered in only a
+%                               small portion of the habitat area, such
+%                               that bh = b/areafrac.
 %
-%       pp:             ngroup x 1 array, fraction of diet consisting of
-%                       primary production, pp = 2 indicates detritus
+%               pp:             ngroup x 1 array, fraction of diet
+%                               consisting of primary production, pp = 2
+%                               indicates detritus 
 % 
-%       dc:             ngroup x ngroup array, diet composition, dc(i,j)
-%                       tells fraction predator j's diet consisting of prey
-%                       i (no units, 0-1)
+%               dc:             ngroup x ngroup array, diet composition,
+%                               dc(i,j) tells fraction predator j's diet
+%                               consisting of prey i (no units, 0-1)
 % 
-%       df:             ngroup x (ngroup - nlive) array, fraction of each
-%                       group that goes to each detrital group due to other
-%                       mortality and egestion (no units, 0-1)
+%               df:             ngroup x (ngroup - nlive) array, fraction
+%                               of each group that goes to each detrital
+%                               group due to other mortality and egestion
+%                               (no units, 0-1)
 %
-%       immig:          ngroup x 1 array, immigration into area 
-%                       (M A^-1 T^-1) 
+%               immig:          ngroup x 1 array, immigration into area  (M
+%                               A^-1 T^-1)  
 %
-%       emig:           ngroup x 1 array, emigration out of area 
-%                       (M A^-1 T^-1)
+%               emig:           ngroup x 1 array, emigration out of area
+%                               (M A^-1 T^-1) 
 %
-%       emigRate:       ngroup x 1 array, emigration per unit biomass
-%                       (T^-1) 
+%               emigRate:       ngroup x 1 array, emigration per unit
+%                               biomass (T^-1)
 % 
-%       ba:             ngroup x 1 array, biomass accumulation 
-%                       (M A^-1 T^-1)
+%               ba:             ngroup x 1 array, biomass accumulation  (M
+%                               A^-1 T^-1) 
 %
-%       baRate          ngroup x 1 array, biomass accumulation per unit
-%                       biomass (T^-1)
+%               baRate          ngroup x 1 array, biomass accumulation per
+%                               unit biomass (T^-1) 
 %
-%       landing         ngroup x ngear array, landings of each group by
-%                       each gear type (M A^-1 T^-1 ?)
+%               landing         ngroup x ngear array, landings of each
+%                               group by each gear type (M A^-1 T^-1) 
 %
-%       discard         ngroup x ngear array, discards of each group by
-%                       each gear type (M A^-1 T^-1 ?)
+%               discard         ngroup x ngear array, discards of each
+%                               group by each gear type (M A^-1 T^-1) 
 %
-%       discardFate:    ngear x (ngroup - nlive) array, fraction of
-%                       discards from each gear type that go to each
-%                       detritus group (no units, 0-1)
+%               discardFate:    ngear x (ngroup - nlive) array, fraction of
+%                               discards from each gear type that go to
+%                               each detritus group (no units, 0-1)  
+%
+% Optional input variables (passed as parameter/value pairs):
+%
+%   x:          1 x 6 cell array of varying parameter values (see
+%               createensemble.m).  If included (along with idx input),
+%               Ecopath balances will be calculated for each ensemble
+%               member, with results returned to the CE output.  Empty by
+%               default
+%
+%   idx:        1 x 6 cell array, indices corresponding to the values in x
+%               (see createensemble.m).  Empty by default. 
+%
+%   debug:      logical scalar, true to track and return extra information
+%               for debugging purposes.  Not applicable to multi-ensemble
+%               member runs.  False by default.  
+%
+%   skipextra:  logical scalar. If true, the script will fill in missing
+%               values but not perform any additional calculations, and
+%               will return only the b, pb, qb, ee, and ge fields of C. 
+%
+%   silent:     logical scalar.  If true, all warning messages are
+%               suppressed.
 %
 % Output variables:
 %
-%   C:  structure with the following fields, all ngroup x 1 arrays unless
-%       otherwise specified
+%   C:          structure with the following fields:
 %
-%       trophic:        ngroup x 1 array, trophic level of each group (no
-%                       unit) 
+%               trophic:        ngroup x 1 array, trophic level of each
+%                               group (no unit)  
 %
-%       areafrac:       ngroup x 1 array, fraction of total area occupied
-%                       by group (no units, 0-1)
+%               areafrac:       ngroup x 1 array, fraction of total area
+%                               occupied by group (no units, 0-1) 
 %
-%       bh:             ngroup x 1 array, biomass in habitable area 
-%                       (M A^-1)
+%               bh:             ngroup x 1 array, biomass in habitable area
+%                               (M A^-1) 
 %
-%       b:              ngroup x 1 array, total biomass (M A^-1)
+%               b:              ngroup x 1 array, total biomass (M A^-1)
 %
-%       pb:             ngroup x 1 array, production/biomass ratio (T^-1)
+%               pb:             ngroup x 1 array, production/biomass ratio
+%                               (T^-1) 
+%   
+%               qb:             ngroup x 1 array, consumption/biomass ratio
+%                               (T^-1) 
 %
-%       qb:             ngroup x 1 array, consumption/biomass ratio (T^-1)
+%               ee:             ngroup x 1 array, ecotrophic efficiency (no
+%                               unit) 
 %
-%       ee:             ngroup x 1 array, ecotrophic efficiency (no unit)
+%               ge:             ngroup x 1 array, growth efficiency, i.e.
+%                               production/consumption (no unit) 
 %
-%       ge:             ngroup x 1 array, growth efficiency, i.e.
-%                       production/consumption (no unit)
+%               ba:             ngroup x 1 array, biomass accumulation  (M
+%                               A^-1 T^-1) 
 %
-%       ba:             ngroup x 1 array, biomass accumulation 
-%                       (M A^-1 T^-1)
+%               baRate:         ngroup x 1 array, biomass accumulation per
+%                               unit biomass (T^-1)  
 %
-%       baRate:         ngroup x 1 array, biomass accumulation per unit
-%                       biomass (T^-1) 
+%               migration:      ngroup x 1 array, net migration (M A^-1
+%                               T^-1) 
 %
-%       migration:      ngroup x 1 array, net migration (M A^-1 T^-1)
+%               flowtodet:      (ngroup + ngear) x 1 array, flow to
+%                               detritus from each group and each gear type
+%                               (M A^-1 T^-1)  
 %
-%       flowtodet:      (ngroup + ngear) x 1 array, flow to detritus from
-%                       each group and each gear type (M A^-1 T^-1)
+%               fishMortRate:   ngroup x 1 array, mortality per unit
+%                               biomass due to fishing (T^-1) 
 %
-%       fishMortRate:   ngroup x 1 array, mortality per unit biomass due to
-%                       fishing (T^-1)
+%               predMortRate:   ngroup x 1 array, mortality per unit
+%                               biomass due to predation, M2 in some
+%                               documentation (T^-1)   
 %
-%       predMortRate:   ngroup x 1 array, mortality per unit biomass due to
-%                       predation, M2 in some documentation (T^-1) 
+%               migrationRate:  ngroup x 1 array, net migration per unit
+%                               biomass (T^-1) 
 %
-%       migrationRate:  ngroup x 1 array, net migration per unit biomass
-%                       (T^-1)
+%               otherMortRate:  ngroup x 1 array, mortality per unit
+%                               biomass due to anything else (T^-1) 
 %
-%       otherMortRate:  ngroup x 1 array, mortality per unit biomass due to
-%                       anything else (T^-1)
+%               predMort:       ngroup x ngroup array, predation mortality
+%                               broken down by predator and prey,
+%                               C.predMoreRate = sum(C.predMort,2). (T^-1)
 %
-%       predMort:       ngroup x ngroup array, predation mortality broken
-%                       down by predator and prey, C.predMoreRate =
-%                       sum(C.predMort,2). (T^-1)
+%               q0:             ngroup x ngroup array, q0(i,j) is the flux
+%                               of biomass from group i to group j.  For j
+%                               = live, this is due to predation.  For j =
+%                               detrital, this includes non-predatory
+%                               mortality and egestion.  (M A^-1 T^-1)
 %
-%       q0:             ngroup x ngroup array, q0(i,j) is the flux of
-%                       biomass from group i to group j.  For j = live,
-%                       this is due to predation.  For j = detrital, this
-%                       includes non-predatory mortality and egestion. 
-%                       (M A^-1 T^-1)
+%               q0Sum:          ngroup x 1 array, total consumption by each
+%                               predator (M A^-1 T^-1) 
 %
-%       q0sum:          ngroup x 1 array, total consumption by each
-%                       predator (M A^-1 T^-1)
+%               respiration:    ngroup x 1 array, respiration (M A^-1 T^-1)
 %
-%       respiration:    ngroup x 1 array, respiration (M A^-1 T^-1)
+%               searchRate:     ngroup x ngroup array, search rates of each
+%                               predator for each prey, assuming simple
+%                               linear dynamics, i.e. Qij = a*Bi*Bj (A M^-1
+%                               T^-1)  
 %
-%       searchRate:     ngroup x ngroup array, search rates of each
-%                       predator for each prey, assuming simple linear
-%                       dynamics, i.e. Qij = a*Bi*Bj (A M^-1 T^-1) 
+%               detexport:      (ngroup-nlive) x 1 array, amount of
+%                               detritus exported from the system (M A^-1
+%                               T^-1) 
 %
-%       detexport:      (ngroup-nlive) x 1 array, amount of detritus
-%                       exported from the system (M A^-1 T^-1)
+%   CE:         1 x nens structure with same format as C. Multi-ensemble
+%               runs only, where nens is the number of ensemble members
+%               described by the parameters in input x.
 %
 %   flag:       false if all unknowns are filled, true if not.  This output
 %               was primarily added for testing purposes.  Unfilled
 %               unknowns are usually due to incorrect input, but may point
 %               to a bug in this implementation of the Ecopath algorithm.
+%               Output not available with multi-ensemble calculation.
 %
 %   fillinfo:   dataset array indicating which algorithm (see Appendix 4 
 %               of the EwE User's Manual) is used to fill in each value,
 %               and on which iteration it was filled.  Also primarily for
-%               testing purposes.
+%               testing purposes. Output not available with multi-ensemble
+%               calculation. 
 %
-%   sc:         Sanity check calculation that list the main terms of the
+%   sc:         Sanity check calculation that lists the main terms of the
 %               Ecopath equation for each group.  Columns correspond to
 %               Bi*PBi*EEi, B1*QB1*DC1i, B2*QB2*DCi2, ... Yi, Ei, BAi.  The
 %               last column is the sum of each row, and should sum to 0 (or
-%               very close, near machine precision).
+%               very close, near machine precision).  Output not available
+%               with multi-ensemble calculation. 
 
-% Copyright 2012-2014 Kelly Kearney
+% Copyright 2012-2015 Kelly Kearney
 % kakearney@gmail.com
 
-debugflag = nargout > 1;
+Opt.x = [];
+Opt.idx = [];
+Opt.skipextra = false;
+Opt.debug = false;
+Opt.silent = false;
+
+Opt = parsepv(Opt, varargin);
+
+multiflag = ~isempty(Opt.x);
+if ~multiflag && nargout > 1
+    Opt.debug = true;
+end
 
 %------------------------------
 % Setup
@@ -222,7 +278,18 @@ if ~isscalar(S)
     error('Input structure must be scalar');
 end
 
-S = ecopathinputcheck(S, true);
+if Opt.silent
+    S = ecopathinputcheck(S, true);
+else
+    S = ecopathinputcheck(S);
+end
+
+if multiflag
+    Ens = subecopathens(S, Opt.x, Opt.idx);
+    nens = length(Ens);
+end
+
+Sorig = S;
 
 %------------------------------
 % Setup calculations
@@ -234,18 +301,26 @@ islive = (1:S.ngroup)' <= S.nlive; % Logical mask for live groups
 % unit biomass (i.e. emigration rate), calculate the rate, and vice versa.
 % Same for BA.
 
-[S.emig, S.emigRate, S.ba, S.baRate] = ...
-    convertrates(S.emig, S.emigRate, S.ba, S.baRate, islive, S.b);
+S = convertrates(S, islive);
 
 % Calculate growth efficiency (i.e. production/consumption ratio),
 % production/biomass ratio, and consuption/biomass ratio if needed and
 % possible
 
-[S.pb, S.qb, S.ge] = pbq(S.pb, S.qb, S.ge, islive);
+S = pbq(S, islive);
 
 % Calculate total catches for each group
 
-catches = sum(S.landing + S.discard, 2);
+S.catches = sum(S.landing + S.discard, 2);
+
+if multiflag
+    
+    for ie = 1:nens
+        Ens(ie) = convertrates(Ens(ie), islive);
+        Ens(ie) = pbq(Ens(ie), islive);
+        Ens(ie).catches = sum(Ens(ie).landing + Ens(ie).discard, 2);
+    end
+end
 
 %--------------------------
 % Determine some predator/
@@ -266,35 +341,51 @@ isPredNoCannib = ispred & ~eye(S.ngroup);
 % missing variables
 %--------------------------
 
-if debugflag
+if Opt.debug
     count = 0;
     filliter = nan(S.ngroup, 5);
     fillalgo = nan(S.ngroup, 5);
     status = [S.b S.pb S.qb S.ee S.ge];
 end
 
-failedtofill = false;
+Fail.flag = 0;
+Fail.idx = 0;
+Fail = struct('flag', 0, 'idx', 0);
+if multiflag
+    FailE = struct('flag', num2cell(zeros(nens,1)), 'idx', cell(nens,1));
+end
+
 while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
 
-    if debugflag
+    if Opt.debug
         count = count + 1;
     end
     
     param = [S.b S.pb S.qb S.ee S.ge];
     
-    % Run the p-b-q algebra again (in case new values have been filled in)
+    % Run the p-b-q algebra again (in case new values have been filled in),
+    % and the rate-to-total calcs (which I'm pretty sure won't change,
+    % since I don't think EwE6 allows you to enter a rate if the B is
+    % missing, but just in case...)
     
-    [S.pb, S.qb, S.ge] = pbq(S.pb, S.qb, S.ge, islive);
+    S = pbq(S, islive);
+    S = convertrates(S, islive);
     
-    % Run the BA/Emig rate-to-total calcs again (in case new b has been
-    % filled in... pretty sure this never changes, but just in case)
-    
-    [S.emig, S.emigRate, S.ba, S.baRate] = ...
-    convertrates(S.emig, S.emigRate, S.ba, S.baRate, islive, S.b);
+    if multiflag
+        for ie = 1:nens
+            Ens(ie) = pbq(Ens(ie), islive);
+            Ens(ie) = convertrates(Ens(ie), islive);
+        end
+    end
 
     % Total export
     
-    ex = catches + S.emig - S.immig + S.ba; 
+    S.ex = S.catches + S.emig - S.immig + S.ba; 
+    if multiflag
+        for ie = 1:nens
+            Ens(ie).ex = Ens(ie).catches + Ens(ie).emig - Ens(ie).immig + Ens(ie).ba; 
+        end
+    end
     
     %-----------------------
     % Algorithm 1: 
@@ -303,18 +394,21 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
 
     knowPredInfo = ~any(bsxfun(@and, ispred, isnan(S.b))) & ...
                    ~any(bsxfun(@and, ispred, isnan(S.qb)));
-    
-    m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); 
-    
+               
     canRun = (islive & ...          % only live groups           
               isnan(S.pb) & ...     % P/B unknown
               ~isnan(S.b) & ...     % B known
               ~isnan(S.ee) & ...    % EE known
               knowPredInfo');       % know B and Q/B for all group's predators
-      
-    S.pb(canRun) = (ex(canRun) + m2(canRun))./(S.b(canRun) .* S.ee(canRun)); 
-                
-    if debugflag
+          
+    S = alg1(S, canRun);
+    if multiflag
+        for ie = 1:nens
+            Ens(ie) = alg1(Ens(ie), canRun);
+        end
+    end      
+    
+    if Opt.debug
         ischanged = ~arrayfun(@(x,y) isequaln(x,y), status, [S.b S.pb S.qb S.ee S.ge]);
         status = [S.b S.pb S.qb S.ee S.ge];
         fillalgo(ischanged) = 1;
@@ -329,17 +423,20 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
     knowPredInfo = ~any(bsxfun(@and, ispred, isnan(S.b))) & ...
                    ~any(bsxfun(@and, ispred, isnan(S.qb)));
     
-    m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); 
-    
     canRun = (islive & ...          % only live groups           
               isnan(S.ee) & ...     % EE unknown
               ~isnan(S.b) & ...     % B known
               ~isnan(S.pb) & ...    % P/B known
               knowPredInfo');       % know B and Q/B for all group's predators
-
-    S.ee(canRun) = (ex(canRun) + m2(canRun))./(S.b(canRun) .* S.pb(canRun)); 
-                
-    if debugflag
+          
+    S = alg2(S, canRun);
+    if multiflag
+        for ie = 1:nens
+            Ens(ie) = alg2(Ens(ie), canRun);
+        end
+    end  
+    
+    if Opt.debug
         ischanged = ~arrayfun(@(x,y) isequaln(x,y), status, [S.b S.pb S.qb S.ee S.ge]);
         status = [S.b S.pb S.qb S.ee S.ge];
         fillalgo(ischanged) = 2;
@@ -386,22 +483,14 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
     idx = ones(ng,1); % This is just to avoid 0 subscripts in testing; we won't actually use the placeholders
     idx(idxknowprey) = sub2ind([ng ng], k(idxknowprey), iitmp(idxknowprey));
 
-    partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
-    m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); % all predation
-
-    dcii = diag(S.dc);
-    dcik = S.dc(idx);
-
-    S.b(group1) = partm2(group1) + ex(group1) + ...
-                  dcii(group1) .*(S.b(k(group1)) .* S.pb(k(group1)) .* ...
-                  S.b(k(group1)) .* S.ee(k(group1)) - ex(k(group1)) - ...
-                  m2(k(group1)))./dcik(group1);
-
-    S.qb(group2) = (S.b(k(group2)) .* S.pb(k(group2)) .* S.b(k(group2)) .* ...
-                   S.ee(k(group2)) - ex(k(group2)) - m2(k(group2))) ./ ...
-                   (dcik(group2) ./ S.b(group2));
-
-    if debugflag
+    S = alg3(S, group1, group2, k, idx);
+    if multiflag
+        for ie = 1:nens
+            Ens(ie) = alg3(Ens(ie), group1, group2, k, idx);
+        end
+    end
+               
+    if Opt.debug
         ischanged = ~arrayfun(@(x,y) isequaln(x,y), status, [S.b S.pb S.qb S.ee S.ge]);
         status = [S.b S.pb S.qb S.ee S.ge];
         fillalgo(ischanged) = 3;
@@ -425,30 +514,18 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
               ~isnan(S.qb) & ...    % Q/B known
               knowPredInfo');       % B and Q/B of predators except itself known
 
-    partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
-    dcCannib = diag(S.dc);
-
-    cannibCheck1 = canRun & (S.pb .* S.ee) == (S.qb .* dcCannib);
-    cannibCheck2 = canRun & (S.pb .* S.ee) < (S.qb .* dcCannib);
-    if any(cannibCheck1)
-        idx = find(cannibCheck1);
-        idxStr = sprintf('%d,', idx);
-        idxStr = idxStr(1:end-1);
-        warning('EWE:cannibalWithoutB', 'Group(s) (%s) are missing biomass but are only preyed on by themselves; group(s) must be split in two to solve\nExiting without solution', idxStr);
-        break
+     if ~Fail.flag     
+        [S, Fail] = alg4(S, canRun);
+     end
+    if multiflag
+        for ie = 1:nens
+            if ~FailE(ie).flag
+                [Ens(ie), FailE(ie)] = alg4(Ens(ie), canRun);
+            end
+        end
     end
-    if any(cannibCheck2)
-        idx = find(cannibCheck2);
-        idxStr = sprintf('%d,', idx);
-        idxStr = idxStr(1:end-1);
-        warning('EWE:cannibalTooHigh', 'Group(s) (%s) have cannibalism losses that exceed predation mortality\nExiting without solution', idxStr); 
-        break
-    end
-
-    S.b(canRun) = (ex(canRun) + partm2(canRun)) ./ ...
-                  (S.pb(canRun) .* S.ee(canRun) - S.qb(canRun) .* dcCannib(canRun));
-
-    if debugflag
+    
+    if Opt.debug
         ischanged = ~arrayfun(@(x,y) isequaln(x,y), status, [S.b S.pb S.qb S.ee S.ge]);
         status = [S.b S.pb S.qb S.ee S.ge];
         fillalgo(ischanged) = 4;
@@ -466,75 +543,25 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         % generalized inverse.
         %-----------------------
         
-        tmp = [S.b S.qb S.pb S.ee];
-        
-        nmissing = sum(isnan(tmp(:)));
-        
-        bmiss = isnan(S.b);
-        qbmiss = isnan(S.qb);
-        
-        if any(bmiss & qbmiss)
-            idx = find(bmiss & qbmiss);
-            str = sprintf('%d,', idx);
-            warning('EWE:B_QB_missing', 'Missing B and QB for group(s) (%s); cannot solve', str(1:end-1));
-            failedtofill = true;
-            break
+        if ~Fail.flag
+            [S, Fail] = alg5(S);
         end
         
-        % Set up matrices: AX = Q, from
-        % Bi*(P/B)i*EEi - sum_over_j(Bj*(Q/B)j*DCij) - Yi - Ei - BAi = 0
-        
-        rhs = [bsxfun(@times, S.b' .* S.qb', S.dc), ...
-               -S.b.*S.pb.*S.ee, ...
-               ex];
-             
-        rhs(:,bmiss | qbmiss) = 0; 
-        rhs(bmiss,S.ngroup+1) = 0; 
-        
-        Q = sum(rhs,2);
-        
-        lhs1 = S.pb .* S.ee;
-        lhs1(~bmiss) = 0;
-        lhs1 = diag(lhs1);
-        
-        lhs2 = -bsxfun(@times, S.qb', S.dc);
-        lhs2(:,~bmiss) = 0;
-        
-        lhs3 =  -bsxfun(@times, S.b', S.dc);
-        lhs3(:,~qbmiss) = 0;
-        
-        A = lhs1 + lhs2 + lhs3;
-        
-        % Drop unecessary columns and rows w/ NaNs (from missing PB or EE)
-        
-        isn = isnan(S.pb) | isnan(S.ee);
-        hasterm = any(A,2);
-                
-        keeprow = ~isn & islive;% & hasterm; 
-        
-        A = A(keeprow, bmiss | qbmiss);
-        Q = Q(keeprow);
-        
-        % Solve
-        
-        X = A\Q;
-        
-        % Resubstitute X to B or QB
-        
-        borqb = nan(S.ngroup);
-        borqb(bmiss | qbmiss) = X;
-        
-        S.b(bmiss) = borqb(bmiss);
-        S.qb(qbmiss) = borqb(qbmiss);
+        if multiflag
+            for ie = 1:nens
+                if ~FailE(ie).flag
+                    [Ens(ie), FailE(ie)] = alg5(Ens(ie));
+                end
+            end
+        end
         
         % Check again
 
-        if debugflag
+        if Opt.debug
             ischanged = ~arrayfun(@(x,y) isequaln(x,y), status, [S.b S.pb S.qb S.ee S.ge]);
             status = [S.b S.pb S.qb S.ee S.ge];
             fillalgo(ischanged) = 5;
             filliter(ischanged) = count;
-
         end
         
     end
@@ -545,31 +572,313 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
     nochange = isequaln(param, [S.b S.pb S.qb S.ee S.ge]);
     
     if nochange
-        warning('EWE:unknownsremain', 'Unable to fill in all unknowns');
-        failedtofill = true;
+        Fail.flag = 4;
+    end
+    
+    if Fail.flag && all([FailE.flag])
         break
     end
     
 end
 
-% Fill in biomass-in-habitat-area
+% Issue warnings if any values failed to fill
+
+if ~Opt.silent
+    if multiflag
+        if any([Fail.flag FailE.flag])
+            ecopathwarn([Fail; FailE]);
+        end
+    else
+        ecopathwarn(Fail);
+    end
+end
+
+% Detritus calculations
+
+S = detcalcs(S, islive);
+if multiflag
+    
+    newfields = setdiff(fieldnames(S), fieldnames(Ens));
+    for in = 1:length(newfields)
+        [Ens.(newfields{in})] = deal([]);
+    end
+    for ie = 1:nens
+        Ens(ie) = detcalcs(Ens(ie), islive);
+    end
+end
+
+%-----------------------
+% Calculate various
+% Ecopath outputs
+%-----------------------
+
+C = basicestimates(S, Opt.skipextra);
+if multiflag
+    for ie = nens:-1:1
+        CE(ie) = basicestimates(Ens(ie), Opt.skipextra);
+    end
+end
+
+if ~Opt.skipextra
+    C = keyindices(S,C);
+    C = mortalities(S,C);
+    C = otheroutput(S,C,islive);
+    
+    if multiflag
+        newfields = setdiff(fieldnames(C), fieldnames(CE));
+        for in = 1:length(newfields)
+            [CE.(newfields{in})] = deal([]);
+        end
+        CE = orderfields(CE, C);
+        for ie = 1:nens
+            CE(ie) = keyindices(Ens(ie),CE(ie));
+            CE(ie) = mortalities(Ens(ie),CE(ie));
+            CE(ie) = otheroutput(Ens(ie),CE(ie),islive);
+        end
+    end
+end
+  
+
+% Assign outputs
+
+if multiflag
+    tmp = {C, CE};
+    varargout = tmp(1:nargout);
+else
+
+    if nargout == 0
+        displayecopath(Sorig,C);
+    elseif nargout == 1
+        varargout{1} = C;
+    elseif nargout > 1
+
+        isfilled = ~isnan(fillalgo);
+        [ig,ivar] = find(isfilled);
+        var = {'B','PB','QB','EE','GE'}';
+        fillinfo = dataset({var(ivar), 'Variable' }, ...
+                           {ig, 'Group'}, ...
+                           {fillalgo(isfilled), 'Algorithm'}, ...
+                           {filliter(isfilled), 'Iteration'});
+
+        tmp = {C, Fail.flag, fillinfo, sanitycheck(S)};
+        varargout = tmp(1:nargout);
+    end
+end
+
+%************************** Subfunctions **********************************
+
+%---------------------------
+% Production-biomass-
+% consumption calculations
+%---------------------------
+
+function S = pbq(S, islive)
+
+temp = isnan(S.pb(islive)) & ~isnan(S.qb(islive)) & ~isnan(S.ge(islive));
+S.pb(temp) = S.ge(temp) .* S.qb(temp);
+        
+temp = isnan(S.qb(islive)) & ~isnan(S.pb(islive)) & ~isnan(S.ge(islive));
+S.qb(temp) = S.pb(temp) ./ S.ge(temp);
+        
+temp = ~isnan(S.qb(islive)) & ~isnan(S.pb(islive));
+S.ge(temp) = S.pb(temp) ./ S.qb(temp);
+     
+                        
+%---------------------------
+% Check if values are known
+%--------------------------- 
+
+function knowall = checkbasic(b, pb, qb, ee, ge, islive, pp)
+knowall = ~any(isnan(b)) && ...
+          ~any(isnan(pb(islive))) && ...
+          ~any(isnan(qb(pp == 0))) && ...
+          ~any(isnan(ee(islive))) && ...
+          ~any(isnan(ge(pp == 0)));
+
+%---------------------------
+% Rate-to-total conversions
+%---------------------------  
+      
+function S = convertrates(S, islive)
+
+% NOTE: In previous versions of this code, I seemed to be using reverse
+% terminology for emig vs emigRate (calcs were right, though)... not sure
+% whether that was a mistake on my part or a convention I stole from the
+% EwE6 code, but either way it was really confusing me, so I've switched
+% back.
+
+if any(isnan(S.b) & (S.emigRate > 0 | S.baRate > 0))
+    warning('Missing b combined with assigned Emigration and/or BA rate: This scenario may not work... check');
+end
+
+e2er   = islive & (S.emig > 0) & ~isnan(S.b) & (S.emigRate == 0);
+er2e   = islive & ~isnan(S.b) & (S.emigRate > 0) & (S.emig == 0);
+ba2bar = islive & (S.ba ~= 0) & ~isnan(S.b) & (S.baRate == 0);
+bar2ba = islive & ~isnan(S.b) & (S.baRate ~= 0) & (S.ba == 0);
+
+S.emigRate(e2er) = S.emig(e2er) ./ S.b(e2er);
+S.emig(er2e) = S.emigRate(er2e) .* S.b(er2e);
+S.baRate(ba2bar) = S.ba(ba2bar) ./ S.b(ba2bar);
+S.ba(bar2ba) = S.baRate(bar2ba) .* S.b(bar2ba);
+                            
+%---------------------------
+% Sanity check: are things
+% balancing properly?
+%---------------------------           
+
+function allterms = sanitycheck(S)
+
+qtmp = bsxfun(@times, S.b' .* S.qb', S.dc);
+qtmp(S.dc == 0) = 0; 
+catches = sum(S.landing + S.discard, 2);
+
+% The master Ecopath equation
+% Bi*PBi*EEi - sum_over_j(Bj*QBj*DCij) - Yi - Ei - BAi = 0
+%
+% Last displayed column should be all 0s
+
+allterms = [S.b.*S.pb.*S.ee -qtmp -catches -S.emig S.immig -S.ba];
+allterms = [allterms sum(allterms,2)];
+
+%---------------------------
+% Ecopath algebra algorithms
+%---------------------------  
+
+% 1: Estimation of P/B
+
+function S = alg1(S, canRun)
+m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2);   
+S.pb(canRun) = (S.ex(canRun) + m2(canRun))./(S.b(canRun) .* S.ee(canRun)); 
+
+% 2: Estimation of EE
+
+function S = alg2(S, canRun)
+m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); 
+S.ee(canRun) = (S.ex(canRun) + m2(canRun))./(S.b(canRun) .* S.pb(canRun));
+
+% 3: B and Q/B as unknowns
+
+function S = alg3(S, group1, group2, k, idx)
+partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
+m2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc), 2); % all predation
+
+dcii = diag(S.dc);
+dcik = S.dc(idx);
+
+S.b(group1) = partm2(group1) + S.ex(group1) + ...
+              dcii(group1) .*(S.b(k(group1)) .* S.pb(k(group1)) .* ...
+              S.b(k(group1)) .* S.ee(k(group1)) - S.ex(k(group1)) - ...
+              m2(k(group1)))./dcik(group1);
+
+S.qb(group2) = (S.b(k(group2)) .* S.pb(k(group2)) .* S.b(k(group2)) .* ...
+               S.ee(k(group2)) - S.ex(k(group2)) - m2(k(group2))) ./ ...
+               (dcik(group2) ./ S.b(group2));
+
+% 4: Biomasses only
+
+function [S, Fail] = alg4(S, canRun)  
+
+partm2 = nansum(bsxfun(@times, S.b' .* S.qb', S.dc .* ~eye(S.ngroup)), 2); % predation, not including cannibalism      
+dcCannib = diag(S.dc);
+
+cannibCheck1 = canRun & (S.pb .* S.ee) == (S.qb .* dcCannib);
+cannibCheck2 = canRun & (S.pb .* S.ee) < (S.qb .* dcCannib);
+
+if any(cannibCheck1)
+    Fail.flag = 1;
+    Fail.idx = find(cannibCheck1);
+elseif any(cannibCheck2)
+    Fail.flag = 2;
+    Fail.idx = find(cannibCheck2);
+else
+    Fail.flag = 0;
+    Fail.idx = [];
+end
+
+if ~Fail.flag
+    S.b(canRun) = (S.ex(canRun) + partm2(canRun)) ./ ...
+                  (S.pb(canRun) .* S.ee(canRun) - S.qb(canRun) .* dcCannib(canRun));
+end
+
+% 5: The generalized inverse
+
+function [S, Fail] = alg5(S)
+
+bmiss = isnan(S.b);
+qbmiss = isnan(S.qb);
+
+if any(bmiss & qbmiss)
+    Fail.flag = 3;
+    Fail.idx = find(bmiss & qbmiss);
+else
+    Fail.flag = 0;
+    Fail.idx = [];
+end
+
+if ~Fail.flag
+
+    % Set up matrices: AX = Q, from
+    % Bi*(P/B)i*EEi - sum_over_j(Bj*(Q/B)j*DCij) - Yi - Ei - BAi = 0
+
+    rhs = [bsxfun(@times, S.b' .* S.qb', S.dc), ...
+           -S.b.*S.pb.*S.ee, ...
+           S.ex];
+
+    rhs(:,bmiss | qbmiss) = 0; 
+    rhs(bmiss,S.ngroup+1) = 0; 
+
+    Q = sum(rhs,2);
+
+    lhs1 = S.pb .* S.ee;
+    lhs1(~bmiss) = 0;
+    lhs1 = diag(lhs1);
+
+    lhs2 = -bsxfun(@times, S.qb', S.dc);
+    lhs2(:,~bmiss) = 0;
+
+    lhs3 =  -bsxfun(@times, S.b', S.dc);
+    lhs3(:,~qbmiss) = 0;
+
+    A = lhs1 + lhs2 + lhs3;
+
+    % Drop unecessary columns and rows w/ NaNs (from missing PB or EE)
+
+    isn = isnan(S.pb) | isnan(S.ee);
+    hasterm = any(A,2);
+
+    keeprow = ~isn & islive;% & hasterm; 
+
+    A = A(keeprow, bmiss | qbmiss);
+    Q = Q(keeprow);
+
+    % Solve
+
+    X = A\Q;
+
+    % Resubstitute X to B or QB
+
+    borqb = nan(S.ngroup);
+    borqb(bmiss | qbmiss) = X;
+
+    S.b(bmiss) = borqb(bmiss);
+    S.qb(qbmiss) = borqb(qbmiss);
+end
+
+%--------------------------
+% Detritus calculations
+%--------------------------
+
+function S = detcalcs(S, islive)
+
+% Fill in biomass-in-habitat area if necessary, and correct some values
 
 needBh = isnan(S.bh) & ~isnan(S.b);
 S.bh(needBh) = S.b(needBh) ./ S.areafrac(needBh);
-
-%--------------------------
-% Set some values to 0 that
-% haven't been corrected
-%--------------------------
 
 S.pb(S.pp == 2) = 0;    % No production for detritus
 S.qb(S.pp >= 1) = 0;    % No consumption for primary producers
 S.ge(S.pp >= 1) = 0;    % Q = 0 for primary producers, so P/Q = Inf, set to 0 instead just as placeholder
 S.gs(S.pp >= 1) = 0;    % Q = 0 so unassim irrelevant for detritus and producers
-
-%--------------------------
-% Detritus calculations
-%--------------------------
 
 % Detritus produced from mortality and egestion
 
@@ -651,40 +960,27 @@ detexport = zeros(S.ngroup-S.nlive,1);
 detexport(hasexport) = inputtodet(hasexport)' - deteaten(hasexport)' - ...
     baDet(hasexport) - detpassedon(hasexport) - respDet(hasexport);
 
-%--------------------------
-% Other
-%--------------------------
+% Add new variables to S
 
-migration = S.emig - S.immig;
-migrationRate = migration ./ S.b;
+S.flowtodet = flowtodet;
+S.detexport = detexport;
+S.respiration = respiration;
+S.q0 = q0;
 
-S.baRate = S.ba./S.b;
 
-fishMortRate = bsxfun(@rdivide, catches, S.b); % fishing rate per biomass by gear
+%-----------------------
+% Basic estimates
+%-----------------------
 
-predMort = S.dc * (S.qb .* S.b);                  % total for each group, M2*B in documentation
-predMortRate = predMort ./ S.b;                   % rate wrt biomass of prey, M2 in documentation
-predMort2 = bsxfun(@times, (S.qb .* S.b)', S.dc); % breakdown for each pred/prey relationship
-predMort2 = bsxfun(@rdivide, predMort2, S.b);     % rate wrt biomass of prey
+function C = basicestimates(S, flag)
 
-otherMortRate = S.pb .* (1 - S.ee);
-
-q0sum = sum(q0,1); % Note: doesn't include import
-
-searchRate = q0 ./ (S.b * S.b');
-searchRate(:,~islive) = 0;
-
-trophic = trophiclevel(S.dc, S.pp, S.nlive, S.ngroup);
-
-%--------------------------
-% Print results or assign
-% output
-%--------------------------
+if flag
+    trophic = nan(S.ngroup,1);
+else
+    trophic = trophiclevel(S.dc, S.pp, S.nlive, S.ngroup);
+end
 
 C.ngroup        = S.ngroup;
-
-% Basic estimates
-
 C.trophic       = trophic;
 C.areafrac      = S.areafrac;
 C.bh            = S.bh;
@@ -694,136 +990,89 @@ C.qb            = S.qb;
 C.ee            = S.ee;
 C.ge            = S.ge;
 
+%-----------------------
 % Key indices
+%-----------------------
+
+function C = keyindices(S,C)
 
 C.ba            = S.ba;
-C.baRate        = S.baRate;
-C.migration     = migration;
-C.flowtodet     = flowtodet;
+C.baRate        = S.ba./S.b;
+C.migration     = S.emig - S.immig;
+C.flowtodet     = S.flowtodet;
 
+%-----------------------
 % Mortalities
+%-----------------------
 
-C.fishMortRate  = fishMortRate;
+function C = mortalities(S,C)
+
+C.fishMortRate = bsxfun(@rdivide, S.catches, S.b); % fishing rate per biomass by gear
+
+predMort = S.dc * (S.qb .* S.b);                  % total for each group, M2*B in documentation
+predMortRate = predMort ./ S.b;                   % rate wrt biomass of prey, M2 in documentation
+predMort2 = bsxfun(@times, (S.qb .* S.b)', S.dc); % breakdown for each pred/prey relationship
+predMort2 = bsxfun(@rdivide, predMort2, S.b);     % rate wrt biomass of prey
+
 C.predMortRate  = predMortRate;
-C.migrationRate = migrationRate;
-C.otherMortRate = otherMortRate;
 C.predMort      = predMort2;
 
-% Consumption
+C.migrationRate = C.migration ./ S.b;
+C.otherMortRate = S.pb .* (1 - S.ee);
 
-C.q0            = q0;
-C.q0Sum         = q0sum;
+%-----------------------
+% Consumption, search
+% rate, respiration
+%-----------------------
 
-% Respiration
+function C = otheroutput(S,C,islive)
 
-C.respiration   = respiration;
+C.q0 = S.q0;
+C.q0Sum = sum(S.q0,1);
 
-% Search rates
+C.respiration = S.respiration;
 
-C.searchRate    = searchRate;
+C.searchRate = S.q0 ./ (S.b * S.b');
+C.searchRate(:,~islive) = 0;
 
-% Detritus export
+C.detexport = S.detexport;
 
-C.detexport     = detexport;
-   
-% Assign outputs
+%-----------------------
+% Warnings
+%-----------------------
 
-if nargout == 0
-    displayecopath(S,C);
-elseif nargout == 1
-    varargout{1} = C;
-elseif nargout > 1
+function ecopathwarn(F)
 
-    isfilled = ~isnan(fillalgo);
-    [ig,ivar] = find(isfilled);
-    var = {'B','PB','QB','EE','GE'}';
-    fillinfo = dataset({var(ivar), 'Variable' }, ...
-                       {ig, 'Group'}, ...
-                       {fillalgo(isfilled), 'Algorithm'}, ...
-                       {filliter(isfilled), 'Iteration'});
-                   
-    tmp = {C, failedtofill, fillinfo, sanitycheck(S)};
-    varargout = tmp(1:nargout);
-end
-
-%************************** Subfunctions **********************************
-
-%---------------------------
-% Production-biomass-
-% consumption calculations
-%---------------------------
-
-function [pb, qb, ge] = pbq(pb, qb, ge, islive)
-
-temp = isnan(pb(islive)) & ~isnan(qb(islive)) & ~isnan(ge(islive));
-pb(temp) = ge(temp) .* qb(temp);
-        
-temp = isnan(qb(islive)) & ~isnan(pb(islive)) & ~isnan(ge(islive));
-qb(temp) = pb(temp) ./ ge(temp);
-        
-temp = ~isnan(qb(islive)) & ~isnan(pb(islive));
-ge(temp) = pb(temp) ./ qb(temp);
-     
-                        
-%---------------------------
-% Check if values are known
-%--------------------------- 
-
-function knowall = checkbasic(b, pb, qb, ee, ge, islive, pp)
-knowall = ~any(isnan(b)) && ...
-          ~any(isnan(pb(islive))) && ...
-          ~any(isnan(qb(pp == 0))) && ...
-          ~any(isnan(ee(islive))) && ...
-          ~any(isnan(ge(pp == 0)));
-
-%---------------------------
-% Rate-to-total conversions
-%---------------------------  
-      
-function [em, emRate, ba, baRate] = convertrates(em, emRate, ba, baRate, islive, b)
-
-% NOTE: In previous versions of this code, I seemed to be using reverse
-% terminology for emig vs emigRate (calcs were right, though)... not sure
-% whether that was a mistake on my part or a convention I stole from the
-% EwE6 code, but either way it was really confusing me, so I've switched
-% back.
-
-if any(isnan(b) & (emRate > 0 | baRate > 0))
-    warning('Missing b combined with assigned Emigration and/or BA rate: This scenario may not work... check');
-end
-
-e2er   = islive & (em > 0) & ~isnan(b) & (emRate == 0);
-er2e   = islive & ~isnan(b) & (emRate > 0) & (em == 0);
-ba2bar = islive & (ba ~= 0) & ~isnan(b) & (baRate == 0);
-bar2ba = islive & ~isnan(b) & (baRate ~= 0) & (ba == 0);
-
-emRate(e2er) = em(e2er) ./ b(e2er);
-em(er2e) = emRate(er2e) .* b(er2e);
-baRate(ba2bar) = ba(ba2bar) ./ b(ba2bar);
-ba(bar2ba) = baRate(bar2ba) .* b(bar2ba);
-                            
-%---------------------------
-% Sanity check: are things
-% balancing properly?
-%---------------------------           
-
-function allterms = sanitycheck(S)
-
-qtmp = bsxfun(@times, S.b' .* S.qb', S.dc);
-qtmp(S.dc == 0) = 0; 
-catches = sum(S.landing + S.discard, 2);
-
-% The master Ecopath equation
-% Bi*PBi*EEi - sum_over_j(Bj*QBj*DCij) - Yi - Ei - BAi = 0
-%
-% Last displayed column should be all 0s
-
-allterms = [S.b.*S.pb.*S.ee -qtmp -catches -S.emig S.immig -S.ba];
-allterms = [allterms sum(allterms,2)];
-% disp(roundn([allterms sum(allterms,2)], -4));
-
-        
-                        
-         
+for ii = 1:length(F)
+    if ii == 1
+        ensstr = 'center model';
+    else
+        ensstr = sprintf('ensemble #%d', ii-1);
+    end
     
-
+    switch F(ii).flag
+        case 1
+            idxStr = sprintf('%d,', F(ii).idx);
+            idxStr = idxStr(1:end-1);
+            
+            warning('EWE:cannibalWithoutB', ...
+                'Exiting without solution for %s\nGroup(s) (%s) are missing biomass but are only preyed on by themselves; group(s) must be split in two to solve', ensstr, idxStr);
+        case 2
+            idxStr = sprintf('%d,', F(ii).idx);
+            idxStr = idxStr(1:end-1);
+            
+            warning('EWE:cannibalTooHigh', ...
+                'Exiting without solution for %s\nGroup(s) (%s) have cannibalism losses that exceed predation mortality', ensstr, idxStr);             
+        case 3
+            idxStr = sprintf('%d,', F(ii).idx);
+            idxStr = idxStr(1:end-1);
+            
+            warning('EWE:B_QB_missing', ...
+                'Exiting without solution for %s\nMissing B and QB for group(s) (%s); cannot solve', ensstr, idxStr);
+        case 4
+            warning('EWE:unknownsremain', ...
+                'Exiting without solution for %s\nUnable to fill in all unknowns; check input', ensstr);
+        
+    end
+end
+    
