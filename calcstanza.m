@@ -30,8 +30,8 @@ function A = calcstanza(A)
 % Input variables:
 %
 %   In: Ecopath input structure.  B and QB of non-leading multi-stanza 
-%       groups can be unknown (i.e. NaN).  Must include the optional stanza
-%       fields, including 'stanza', 'ageStart', 'stanzadata', and 'vbK'.
+%       groups can be unknown (i.e. NaN).  Stanza-related fields (stanza,
+%       stanzadata, ageStart, and vbK) must be present.
 %
 % Output variables:
 %
@@ -39,7 +39,7 @@ function A = calcstanza(A)
 %       multi-stanza group B and QB values have been recalculated/filled
 %       in.
 
-% Copyright 2014 Kelly Kearney
+% Copyright 2014-2015 Kelly Kearney
 
 ns = length(A.stanzadata.StanzaID);
 
