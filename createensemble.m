@@ -119,6 +119,14 @@ function Ens = createensemble(Ewein, pedigree, nsample, varargin)
 %               x:      1 x 6 cell array of parameter values.  The arrays
 %                       in each cell are nset x nidx arrays, where nidx
 %                       corresponds to the length of the cells in idx.
+%                       Note that these values include the
+%                       randomly-distributed values *without* any
+%                       inter-parameter adjustments (such as DC
+%                       normalization or multi-stanza growth curve fits);
+%                       these adjustments must be applied before being used
+%                       in a new Ecopath model (both subecopathens.m and
+%                       ecopathlite.m with ensemble input option perform
+%                       these adjustments).
 %
 %               mu:     1 x 6 cell array of mu values associated with the
 %                       lognormal distribution for each ensemble set
@@ -358,7 +366,7 @@ nx = size(x,1);
 ncol = cellfun(@length, idx);
 x = mat2cell(x, nx, ncol);
 
-Ep = ecopathlite(Ewein, 'x', x, 'idx', idx, 'skipextra', true, 'silent', true);
+[blah, Ep] = ecopathlite(Ewein, 'x', x, 'idx', idx, 'skipextra', true, 'silent', true);
 
 isbal = all([Ep.ee] <= 1 & [Ep.ee] >= 0 & ~isnan([Ep.ee]) & ...
             [Ep.ge] >= 0 & [Ep.ge] <= 1, 1);
