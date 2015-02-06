@@ -130,7 +130,28 @@ function varargout = ecopathlite(S, varargin)
 %
 %               discardFate:    ngear x (ngroup - nlive) array, fraction of
 %                               discards from each gear type that go to
-%                               each detritus group (no units, 0-1)  
+%                               each detritus group (no units, 0-1)
+%
+%               stanzadata:     dataset array holding properties of each
+%                               multi-stanza group (only necessary if at
+%                               least one multi-stanza group in the model)
+%
+%               stanza:         ngroup x 1 array, stanza ID corresponding
+%                               to each group, 0 if not a multi-stanza
+%                               group (only necessary if at least one
+%                               multi-stanza group in the model)
+%
+%               ageStart:       ngroup x 1 array, age (in months) at which
+%                               each stanza group starts  (only necessary
+%                               if at least one multi-stanza group in the
+%                               model)
+%
+%               vbK:            ngroup x 1 array, K parameter from von
+%                               Bertalanffy growth curve.  Should be same
+%                               value for all age groups in a single
+%                               stanza.  EwE6 uses -1 as a placeholder for
+%                               non-stanza groups (only necessary if at
+%                               least one multi-stanza group in the model)
 %
 % Optional input variables (passed as parameter/value pairs):
 %
@@ -908,11 +929,16 @@ deteaten = sum(q0(~islive,:),2)';
 
 % Respiration
 
-temp = zeros(size(S.pp));
-temp(S.pp < 1)  = 1 - S.pp(S.pp < 1);
-temp(S.pp >= 1) = 1;
+% temp = zeros(size(S.pp));
+% temp(S.pp < 1)  = 1 - S.pp(S.pp < 1);
+% temp(S.pp >= 1) = 1;
+% 
+% respiration = S.b .* S.qb - temp .* (S.ee .* S.b .* S.pb + flowtodet(1:S.ngroup));
+% respiration(S.pp >= 1) = 0;
 
-respiration = S.b .* S.qb - temp .* (S.ee .* S.b .* S.pb + flowtodet(1:S.ngroup));
+% Respiration (v6.3.1 changed the formula)
+
+respiration = S.qb.*S.b - S.pb.*S.b - (S.gs.*S.qb.*S.b);
 respiration(S.pp >= 1) = 0;
 
 % Fate of detritus: surplus detritus (i.e. not eaten) goes either to other
@@ -1001,6 +1027,10 @@ C.baRate        = S.ba./S.b;
 C.migration     = S.emig - S.immig;
 C.flowtodet     = S.flowtodet;
 
+C.omnivory = sum(bsxfun(@minus, C.trophic, (C.trophic'-1)).^2 .* S.dc,1)';
+
+C.neteff = C.pb./(C.qb .* (1-S.gs));
+
 %-----------------------
 % Mortalities
 %-----------------------
@@ -1036,6 +1066,8 @@ C.searchRate = S.q0 ./ (S.b * S.b');
 C.searchRate(:,~islive) = 0;
 
 C.detexport = S.detexport;
+
+
 
 %-----------------------
 % Warnings
