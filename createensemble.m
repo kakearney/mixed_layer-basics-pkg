@@ -52,9 +52,10 @@ function Ens = createensemble(Ewein, pedigree, nsample, varargin)
 %   pedigree:   ngroup x 6 array of pedigree values (B, PB, QB, DC, EE,
 %               GE).  All values should be between 0 and 1.  The last two
 %               columns (EE, GE) are optional; if not included, they will
-%               be assigned a value of 0.0001 to approximate no variation
-%               in value.  These values assign uncertainty to the parameter
-%               values (see pdfname input for specifics).
+%               be assigned NaNs.  The pedigree values assign uncertainty
+%               to the parameter values (see pdfname input for specifics).
+%               A value of 0 or NaN indicates no variation, and
+%               corresponding parameters will be left as point estimates.
 %
 %   nset:       number of ensemble members to collect
 %
@@ -168,6 +169,8 @@ ng = Ewein.ngroup;
 % Gather vars
 %----------------
 
+pedigree(pedigree == 0) = NaN;
+
 bbped = pedigree(:,1);
 pbped = pedigree(:,2);
 qbped = pedigree(:,3);
@@ -175,12 +178,12 @@ dcped = repmat(pedigree(:,4), 1, ng);
 if size(pedigree,2) > 4
     eeped = pedigree(:,5);
 else
-    eeped = zeros(size(bbped)) + 0.0001; % For back-compatability, more or less
+    eeped = nan(size(bbped)); % For back-compatability, more or less
 end
 if size(pedigree,2) > 5
     geped = pedigree(:,6);
 else
-    geped = zeros(size(bbped)) + 0.0001;
+    geped = nan(size(bbped));
 end
 
 bbmid = Ewein.b;
@@ -190,12 +193,12 @@ dcmid = Ewein.dc;
 eemid = Ewein.ee;
 gemid = Ewein.ge;
 
-bbidx = find(~isnan(bbmid));
-pbidx = find(~isnan(pbmid) & pbmid ~= 0);
-qbidx = find(~isnan(qbmid) & qbmid ~= 0);
-dcidx = find(dcmid);
-eeidx = find(~isnan(eemid) & Ewein.pp ~= 2);
-geidx = find(~isnan(gemid) & any(isnan([pbmid qbmid]),2)); % GE overwritten if PB and QB also provided
+bbidx = find(~isnan(bbmid) & ~isnan(bbped));
+pbidx = find(~isnan(pbmid) & pbmid ~= 0 & ~isnan(pbped));
+qbidx = find(~isnan(qbmid) & qbmid ~= 0 & ~isnan(qbped));
+dcidx = find(dcmid & ~isnan(dcped));
+eeidx = find(~isnan(eemid) & Ewein.pp ~= 2 & ~isnan(eeped));
+geidx = find(~isnan(gemid) & any(isnan([pbmid qbmid]),2) & ~isnan(geped)); % GE overwritten if PB and QB also provided
 
 idx = {bbidx, pbidx, qbidx, dcidx, eeidx, geidx};
 
