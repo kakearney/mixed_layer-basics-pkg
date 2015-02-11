@@ -97,6 +97,9 @@ function varargout = ecopathlite(S, varargin)
 %               pp:             ngroup x 1 array, fraction of diet
 %                               consisting of primary production, pp = 2
 %                               indicates detritus 
+%
+%               import:         ngroup x 1 array, fraction of diet coming
+%                               from outside the system. 
 % 
 %               dc:             ngroup x ngroup array, diet composition,
 %                               dc(i,j) tells fraction predator j's diet
@@ -252,6 +255,41 @@ function varargout = ecopathlite(S, varargin)
 %                               detritus exported from the system (M A^-1
 %                               T^-1) 
 %
+%               omnivory:       ngroup x 1, omnivory index, i.e. variance
+%                               of prey's trophic level (Note: not quite
+%                               right for partial primary producers right
+%                               now) (no unit)
+%
+%               neteff:         ngroup x 1 array, net food conversion
+%                               efficiency (no unit) 
+%
+%               import:         (ngroup + ngear) x 1 array, import into the
+%                               system to each group/gear.  Includes
+%                               consumption of prey from outside and
+%                               detritus import (M A^-1 T^-1) 
+%
+%               export:         (ngroup + ngear) x 1 array, export out of
+%                               the system by each group/gear.  Includes
+%                               nonpredatory and egested loss not directed
+%                               to detritus, fisheries landings, and
+%                               detritus export. 
+%
+%               flow:           (ngroup + ngear + 1) x (ngroup + ngear + 2)
+%                               array, matrix of all flows in the system,
+%                               with  rows corresponding to source groups
+%                               and columns to sink groups.  Rows/columns
+%                               are in the order of live groups, detrital
+%                               groups, fishing gears, outside the system,
+%                               and respiration-destination.
+%
+%               Idx:            structure of indices corresponding to the
+%                               rows and columns of the flow array,
+%                               categorized as living groups (liv),
+%                               detrital groups(det), fishing gears (gear),
+%                               outside the system (out), and the
+%                               mysterious beyond where respiration goes
+%                               (res).                       
+%
 %   CE:         1 x nens structure with same format as C. Multi-ensemble
 %               runs only, where nens is the number of ensemble members
 %               described by the parameters in input x.
@@ -260,7 +298,14 @@ function varargout = ecopathlite(S, varargin)
 %               was primarily added for testing purposes.  Unfilled
 %               unknowns are usually due to incorrect input, but may point
 %               to a bug in this implementation of the Ecopath algorithm.
-%               Output not available with multi-ensemble calculation.
+%               Output not available with multi-ensemble calculation
+%               (Assuming the main model of the ensemble can be filled, the
+%               other ensemble members should too, with one exception: the
+%               parameter-variation process can push groups with
+%               cannibalism over the threshold where predation mortality
+%               exceeds cannibalism, leading to some ensemble members with
+%               missing values... unless running in silent mode, these will
+%               be noted by a warning message printed to the screen).
 %
 %   fillinfo:   dataset array indicating which algorithm (see Appendix 4 
 %               of the EwE User's Manual) is used to fill in each value,
@@ -901,97 +946,170 @@ S.qb(S.pp >= 1) = 0;    % No consumption for primary producers
 S.ge(S.pp >= 1) = 0;    % Q = 0 for primary producers, so P/Q = Inf, set to 0 instead just as placeholder
 S.gs(S.pp >= 1) = 0;    % Q = 0 so unassim irrelevant for detritus and producers
 
-% Detritus produced from mortality and egestion
+% Matrix of flows: 
+% rows = sources: groups, gears, outside
+% cols = sinks:   groups, gears, outside, resp
 
-mort = bsxfun(@times, S.b .* S.pb .* (1 - S.ee), S.df);   
-egest = bsxfun(@times, S.b .* S.qb .* S.gs, S.df);   
-detgroups = mort + egest;
+q0 = bsxfun(@times, S.dc, S.qb' .* S.b'); % Consumption of prey
 
-% Detritus produced from fisheries discards
-
-detfisheries = bsxfun(@times, sum(S.discard,1)', S.discardFate);
-
-% Input to detritus groups from groups, fleets, and import
-
-det = [detgroups; detfisheries];            % By source and destination
-flowtodet = sum(det, 2);                    % By source only
-inputtodet = nansum(det,1) + sum(S.dtImp);  % By destination only
-
-% Consumption grid
-
-q0 = bsxfun(@times, S.dc, S.qb' .* S.b');   % consumption by all groups
-q0(:, ~islive) = detgroups;                 % "consumption" by detritus
-q0(~islive, ~islive) = 0;                   % Fixes detritus ee calc (no NaN)
-
-% Detritus loss to consumption by other groups
-
-deteaten = sum(q0(~islive,:),2)';  
-
-% Respiration
-
-% temp = zeros(size(S.pp));
-% temp(S.pp < 1)  = 1 - S.pp(S.pp < 1);
-% temp(S.pp >= 1) = 1;
-% 
-% respiration = S.b .* S.qb - temp .* (S.ee .* S.b .* S.pb + flowtodet(1:S.ngroup));
-% respiration(S.pp >= 1) = 0;
-
-% Respiration (v6.3.1 changed the formula)
+mort  = bsxfun(@times, S.b .* S.pb .* (1 - S.ee), [S.df 1-sum(S.df,2)]); 
+egest = bsxfun(@times, S.b .* S.qb .* S.gs, [S.df 1-sum(S.df,2)]); 
+discards = bsxfun(@times, sum(S.discard,1)', [S.discardFate 1-sum(S.discardFate,2)]);
+imports = S.qb .* S.b .* S.import;
 
 respiration = S.qb.*S.b - S.pb.*S.b - (S.gs.*S.qb.*S.b);
 respiration(S.pp >= 1) = 0;
 
-% Fate of detritus: surplus detritus (i.e. not eaten) goes either to other
-% detritus groups, to self (as biomass accumulation), or is exported from
-% the system.
+Idx.liv = 1:S.nlive;
+Idx.det = (S.nlive+1):S.ngroup;
+Idx.gear = (1:S.ngear) + S.ngroup;
+Idx.out = S.ngroup+S.ngear+1;
+Idx.res = S.ngroup+S.ngear+2;
 
-% Note: Inclusion of respiration confuses me... isn't that always 0 for
-% detritus?  Also, in CalcBAofDetritus, they redefine Surplus (my
-% detsurplus) as inputtodet - deteaten - fCatch, to account for a model
-% that included catch of a detritus group, later discarded to a different
-% detritus group.  Not sure why they didn't make that change in
-% CalcFateOfDetritus too; for now I'm leaving it out (seems like an odd
-% edge case anyway).
+flows = zeros(S.ngroup+S.ngear+1,S.ngroup+S.ngear+2);   
+flows([Idx.liv Idx.det], [Idx.liv Idx.det]) = q0;                    % Pred eats prey
+flows([Idx.liv Idx.det], [Idx.det Idx.out]) = mort + egest;          % Non-pred loss and egestion goes to detritus or export
+flows([Idx.liv Idx.det],  Idx.gear        ) = S.landing + S.discard; % Catches and discards go from groups to gears
+flows( Idx.gear,         [Idx.det Idx.out]) = discards;              % Discards are then sent to detritus
+flows( Idx.gear,          Idx.out         ) = sum(S.landing,1);      % Landings are exported from the system 
+flows([Idx.liv Idx.det],  Idx.res         ) = respiration;           % Remaining production goes to respiration
+flows( Idx.out,          [Idx.liv Idx.det]) = imports;               % Some groups feed outside system
+flows( Idx.out,           Idx.det         ) = S.dtImp(Idx.det);      % And detrital groups can also import
 
-detsurplus = inputtodet - deteaten - respiration(~islive)';   % surplus in each detritus group
-surplusfate = bsxfun(@times, S.df(~islive,:), detsurplus');
+% What's the remaining balance in the detrital groups?
 
-isself = eye(size(surplusfate));
-surplusfateself = diag(surplusfate);
-surplusfate     = surplusfate .* ~isself; % set diagnonal to 0
+surplus = nansum(flows(:,Idx.det),1)' - nansum(flows(Idx.det,:),2);
 
-inputtodet = inputtodet + sum(surplusfate, 1);
-detpassedon = sum(surplusfate,2);
+% Surplus either goes to detrital groups or to export
 
-det(~islive,:) = surplusfate;
-flowtodet = sum(det, 2); % flowtodet(~islive) = detpassedon;
-q0(~islive,~islive) = surplusfate;
+surplusfate = bsxfun(@times, surplus, [S.df(~islive,:) 1-sum(S.df(~islive,:),2)]);
 
-% surplus = inputtodet - deteaten - fcatch(~islive)'; % Mostly same as detsurplus above, but apparently some models inlcude "catch" of detritus, redirected to other detritus groups
-% S.ba(~islive) = surplus' .* S.df(~islive); % where surplus goes
-S.ba(~islive) = surplusfateself;
+flows(Idx.det, [Idx.det Idx.out]) = surplusfate;
+
+% Move detrital flow to self to BA
+
+toself = diag(flows);  
+detba = toself(Idx.det);
+S.ba(Idx.det) = detba;  % Haven't thoroughly tested this one...
 
 % EE of detritus
 
-needdetee = ~islive & isnan(S.ee);
-tempee(~islive) = (deteaten ./ inputtodet)' - respiration(~islive);
-S.ee(needdetee) = tempee(needdetee);
+detin = flows(:,Idx.det);
+deteaten = flows(Idx.det,Idx.liv);
+detresp = flows(Idx.det, Idx.res);
+detee = sum(deteaten,2)'./(sum(detin,1) - sum(detresp,2)');
 
-% Export of detritus
+S.ee(~islive) = detee;
 
-hasexport = sum(S.df(~islive,:),2) < 1;
-baDet = S.ba(~islive);
-respDet = respiration(~islive);
-detexport = zeros(S.ngroup-S.nlive,1);
-detexport(hasexport) = inputtodet(hasexport)' - deteaten(hasexport)' - ...
-    baDet(hasexport) - detpassedon(hasexport) - respDet(hasexport);
+% Add the flows field to S for use later
 
-% Add new variables to S
+S.flows = flows;
+S.Idx = Idx;
 
-S.flowtodet = flowtodet;
-S.detexport = detexport;
-S.respiration = respiration;
-S.q0 = q0;
+% 
+% 
+% 
+% 
+% % Detritus produced from mortality and egestion
+% 
+% mort = bsxfun(@times, S.b .* S.pb .* (1 - S.ee), [S.df 1-sum(S.df,2)]);   
+% egest = bsxfun(@times, S.b .* S.qb .* S.gs, [S.df 1-sum(S.df,2)]);   
+% detgroups = mort + egest;
+% 
+% % Detritus produced from fisheries discards
+% 
+% detfisheries = bsxfun(@times, sum(S.discard,1)', [S.discardFate 1-sum(S.discardFate,2)]);
+% 
+% % Separate detritus flows from export
+% 
+% exports = [detgroups(:,end); detfisheries(:,end)];
+% detgroups = detgroups(:,1:end-1);
+% detfisheries = detfisheries(:,1:end-1);
+% 
+% % Input to detritus groups from groups, fleets, and import
+% 
+% det = [detgroups; detfisheries];            % By source and destination
+% flowtodet = sum(det, 2);                    % By source only
+% inputtodet = nansum(det,1) + sum(S.dtImp);  % By destination only
+% 
+% % Consumption grid
+% 
+% q0 = bsxfun(@times, S.dc, S.qb' .* S.b');   % consumption by all groups
+% q0(:, ~islive) = detgroups;                 % "consumption" by detritus
+% q0(~islive, ~islive) = 0;                   % Fixes detritus ee calc (no NaN)
+% 
+% % Detritus loss to consumption by other groups
+% 
+% deteaten = sum(q0(~islive,:),2)';  
+% 
+% % Respiration
+% 
+% % temp = zeros(size(S.pp));
+% % temp(S.pp < 1)  = 1 - S.pp(S.pp < 1);
+% % temp(S.pp >= 1) = 1;
+% % 
+% % respiration = S.b .* S.qb - temp .* (S.ee .* S.b .* S.pb + flowtodet(1:S.ngroup));
+% % respiration(S.pp >= 1) = 0;
+% 
+% % Respiration (v6.3.1 changed the formula)
+% 
+% respiration = S.qb.*S.b - S.pb.*S.b - (S.gs.*S.qb.*S.b);
+% respiration(S.pp >= 1) = 0;
+% 
+% % Fate of detritus: surplus detritus (i.e. not eaten) goes either to other
+% % detritus groups, to self (as biomass accumulation), or is exported from
+% % the system.
+% 
+% % Note: Inclusion of respiration confuses me... isn't that always 0 for
+% % detritus?  Also, in CalcBAofDetritus, they redefine Surplus (my
+% % detsurplus) as inputtodet - deteaten - fCatch, to account for a model
+% % that included catch of a detritus group, later discarded to a different
+% % detritus group.  Not sure why they didn't make that change in
+% % CalcFateOfDetritus too; for now I'm leaving it out (seems like an odd
+% % edge case anyway).
+% 
+% detsurplus = inputtodet - deteaten - respiration(~islive)';   % surplus in each detritus group
+% surplusfate = bsxfun(@times, S.df(~islive,:), detsurplus');
+% 
+% isself = eye(size(surplusfate));
+% surplusfateself = diag(surplusfate);
+% surplusfate     = surplusfate .* ~isself; % set diagnonal to 0
+% 
+% inputtodet = inputtodet + sum(surplusfate, 1);
+% detpassedon = sum(surplusfate,2);
+% 
+% det(~islive,:) = surplusfate;
+% flowtodet = sum(det, 2); % flowtodet(~islive) = detpassedon;
+% q0(~islive,~islive) = surplusfate;
+% 
+% % surplus = inputtodet - deteaten - fcatch(~islive)'; % Mostly same as detsurplus above, but apparently some models inlcude "catch" of detritus, redirected to other detritus groups
+% % S.ba(~islive) = surplus' .* S.df(~islive); % where surplus goes
+% S.ba(~islive) = surplusfateself;
+% 
+% % EE of detritus
+% 
+% needdetee = ~islive & isnan(S.ee);
+% tempee(~islive) = (deteaten ./ inputtodet)' - respiration(~islive);
+% S.ee(needdetee) = tempee(needdetee);
+% 
+% % Export of detritus
+% 
+% hasexport = sum(S.df(~islive,:),2) < 1;
+% baDet = S.ba(~islive);
+% respDet = respiration(~islive);
+% detexport = zeros(S.ngroup-S.nlive,1);
+% detexport(hasexport) = inputtodet(hasexport)' - deteaten(hasexport)' - ...
+%     baDet(hasexport) - detpassedon(hasexport) - respDet(hasexport);
+% 
+% exports(~islive) = detexport;
+% 
+% % Add new variables to S
+% 
+% S.flowtodet = flowtodet;
+% S.detexport = detexport;
+% S.respiration = respiration;
+% S.q0 = q0;
+% S.export = exports;
 
 
 %-----------------------
@@ -1025,9 +1143,12 @@ function C = keyindices(S,C)
 C.ba            = S.ba;
 C.baRate        = S.ba./S.b;
 C.migration     = S.emig - S.immig;
-C.flowtodet     = S.flowtodet;
+C.flowtodet     = sum(S.flows([S.Idx.liv S.Idx.det S.Idx.gear], S.Idx.det), 2);
 
-C.omnivory = sum(bsxfun(@minus, C.trophic, (C.trophic'-1)).^2 .* S.dc,1)';
+% C.flowtodet     = S.flowtodet;
+
+bqb = sum(bsxfun(@times, C.trophic, S.dc), 1);
+C.omnivory = sum(bsxfun(@minus, C.trophic, bqb).^2 .* S.dc, 1)';
 
 C.neteff = C.pb./(C.qb .* (1-S.gs));
 
@@ -1057,17 +1178,40 @@ C.otherMortRate = S.pb .* (1 - S.ee);
 
 function C = otheroutput(S,C,islive)
 
-C.q0 = S.q0;
-C.q0Sum = sum(S.q0,1);
+C.q0 = S.flows([S.Idx.liv S.Idx.det], [S.Idx.liv S.Idx.det]);
+C.q0sum = sum(C.q0,1);
 
-C.respiration = S.respiration;
+C.respiration = S.flows([S.Idx.liv S.Idx.det], S.Idx.res);
 
-C.searchRate = S.q0 ./ (S.b * S.b');
+C.detexport = S.flows(S.Idx.det, S.Idx.out);
+
+C.searchRate = C.q0 ./ (S.b * S.b');
 C.searchRate(:,~islive) = 0;
 
-C.detexport = S.detexport;
+C.import = S.flows(S.Idx.out, [S.Idx.liv S.Idx.det S.Idx.gear])';
+C.export = S.flows([S.Idx.liv S.Idx.det S.Idx.gear], S.Idx.out);
 
+C.flow = S.flows;
+C.Idx = S.Idx;
 
+% S.detexport = detexport;
+% S.respiration = respiration;
+% S.q0 = q0;
+% S.export = exports;
+
+% C.q0 = S.q0;
+% C.q0Sum = sum(S.q0,1);
+% 
+% C.respiration = S.respiration;
+% 
+% C.detexport = S.detexport;
+% 
+% if isfield(S, 'import')
+%     C.impconsump = S.qb .* S.b .* S.import;
+% else
+%     C.impconsump = zeros(size(S.qb));
+% end
+% C.export = S.export;
 
 %-----------------------
 % Warnings
