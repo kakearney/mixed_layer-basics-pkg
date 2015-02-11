@@ -138,6 +138,13 @@ if any(pbnotzero)
     A.pb(pbnotzero) = 0;
 end
 
+% Added input field in later versions of code, derive from DC if not
+% present
+
+if ~isfield(A, 'input')
+    A.input = 1 - sum(A.dc,1)';
+end
+
 %----------------------------
 % Check Ecosim-related 
 % content (optional fields)
