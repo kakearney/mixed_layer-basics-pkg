@@ -141,8 +141,8 @@ end
 % Added input field in later versions of code, derive from DC if not
 % present
 
-if ~isfield(A, 'input')
-    A.input = 1 - sum(A.dc,1)';
+if ~isfield(A, 'import')
+    A.import = 1 - sum(A.dc,1)';
 end
 
 %----------------------------
