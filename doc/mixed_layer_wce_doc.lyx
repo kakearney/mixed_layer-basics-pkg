@@ -767,7 +767,7 @@ where
 \begin_inset Formula $dz$
 \end_inset
 
- is the width of the bottom grid cell (m), and 
+ is the thickness of the bottom grid cell (m), and 
 \begin_inset Formula $z_{ob}$
 \end_inset
 
