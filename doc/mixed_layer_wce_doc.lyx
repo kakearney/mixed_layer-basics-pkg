@@ -23,7 +23,8 @@
 \renewcommand{\maketitle}{
 \begin{flushleft}
 \textbf{\@title} \\
-\@author
+\@date\\
+\@author\\
 \end{flushleft}
 }
 \makeatother
@@ -208,11 +209,9 @@ The model described in this document is a fully-coupled physical, biogeochemical
  The generic model framework consists of a physical water column model,
  within which I run a biological module that adds in all the biologically-releva
 nt state variables to this physical model.
- I never gave this model (or set of models) a proper name; I have a personal
- aversion to the trend of unintelligible acronyms but nothing better ever
- came to mind.
- I generally refer to it by the names of the Matlab functions it uses: the
- physical model is 
+ I never gave this model (or set of models) a proper name; I generally refer
+ to it by the names of the Matlab functions it uses: the physical model
+ is 
 \begin_inset ERT
 status open
 
@@ -240,9 +239,8 @@ texttt{wce.m}
 
 \end_inset
 
- (for water column ecosystem...
- damn, and unpronounceable and uninformative acronym!), and the NPZ-only
- biological module that I use for some setup and comparison is 
+ (for water column ecosystem), and the NPZ-only biological module that I
+ use for some setup and comparison is 
 \begin_inset ERT
 status open
 
@@ -256,8 +254,9 @@ texttt{nemurokak.m}
 \end_inset
 
  (my own variant of the popular NEMURO model, with my initials appended).
- Taken as a whole, for the purposes of titling this document, I've just
- named it after myself, since that's how it shows up for citation purposes.
+ Taken as a whole, for the purposes of titling this document, I'll simply
+ refer to it as the Kearney model, since that's how it shows up for citation
+ purposes.
 \end_layout
 
 \begin_layout Standard
@@ -279,13 +278,11 @@ key "Kearney2013"
 
 .
  Since then, the model has continued to evolve, and likely will continue
- to do so.
- I've spent a lot of time pulling my own hair out in attempts to understand
- the inner workings of other people's models, so I'm trying to keep things
- as transparent as possible with this one.
- This document will likely continue to accompany any publications that use
- this model as supplementary material, since all of this is far too detailed
+ to do so; it will continue to accompany any publications that use this
+ model as supplementary material, since all of this is far too detailed
  to go into journal articles themselves.
+ This version describes the code in it's current state, as of the date listed
+ in the title.
 \end_layout
 
 \begin_layout Standard
@@ -311,7 +308,42 @@ The mixed-layer model simulates the evolution of water column properties
  under specified forcing by wind, heat, and salinity forcing.
  Allowance is also made for currents via a depth-independent pressure accelerati
 on.
- There are six physical state variables in the physical model formulation:
+ 
+\end_layout
+
+\begin_layout Standard
+Where not otherwise noted, the 
+\begin_inset Formula $x$
+\end_inset
+
+, 
+\begin_inset Formula $y$
+\end_inset
+
+, and 
+\begin_inset Formula $z$
+\end_inset
+
+ in the following sections refer to east/west horizontal distance, north/south
+ horizontal distance, and vertical distance, respectively.
+ Likewise, 
+\begin_inset Formula $U$
+\end_inset
+
+, 
+\begin_inset Formula $V$
+\end_inset
+
+, and 
+\begin_inset Formula $w$
+\end_inset
+
+ refer to eastward, northward, and vertical velocities, respectively.
+ 
+\end_layout
+
+\begin_layout Standard
+There are six physical state variables in the physical model formulation:
  
 \begin_inset Formula $U$
 \end_inset
