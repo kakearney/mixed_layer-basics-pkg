@@ -610,7 +610,7 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         %-----------------------
         
         if ~Fail.flag
-            [S, Fail] = alg5(S);
+            [S, Fail] = alg5(S, islive);
         end
         
         if multiflag
@@ -641,7 +641,7 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         Fail.flag = 4;
     end
     
-    if Fail.flag && all([FailE.flag])
+    if (~multiflag && Fail.flag) ||  (multiflag && Fail.flag && all([FailE.flag]))
         break
     end
     
@@ -868,7 +868,7 @@ end
 
 % 5: The generalized inverse
 
-function [S, Fail] = alg5(S)
+function [S, Fail] = alg5(S, islive)
 
 bmiss = isnan(S.b);
 qbmiss = isnan(S.qb);
