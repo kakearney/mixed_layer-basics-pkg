@@ -831,7 +831,7 @@ end
 
 % Restore path to user's
 
-path(userpath);
+% path(userpath);
 
 % Debugging
 

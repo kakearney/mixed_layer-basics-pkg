@@ -133,6 +133,7 @@ end
 
 % Indices to run
 
+idx = cellfun(@(x) x(:), idx, 'uni', 0);
 idx = unique(cat(1,idx{:})); % Assuming here that any mismatch between folders is intentional
 
 Opt.idx = setdiff(Opt.idx, idx);
