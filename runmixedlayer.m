@@ -149,16 +149,21 @@ logfile = fullfile(Opt.folder, [Opt.name datestr(now, '_yyyymmddHHMM') '.log']);
 
 % Set up parallel, if necessary
 
-if Opt.usepar && matlabpool('size') == 0 && any(runflag)
-    matlabpool('local', Opt.nlabs);
+pcloseflag = false;
+p = gcp('nocreate');
+if Opt.usepar
+    if isempty(p) && any(runflag)
+        p = parpool(Opt.nlabs);
+        pcloseflag = true;
+    end
+    nworker = p.NumWorkers;
+else
+    nworker = 0;
 end
-if ~Opt.usepar && matlabpool('size') > 0 % Just in case left open
-    matlabpool('close');
-end
-
+    
 % Run simulations
 
-parfor iw = 1:nens
+parfor (iw = 1:nens, nworker)
     
     if runflag(iw)
     
@@ -186,8 +191,8 @@ parfor iw = 1:nens
     
 end
 
-if Opt.usepar && any(runflag)
-    matlabpool('close');
+if pcloseflag
+    delete(p);
 end
 
 %------------------------------
