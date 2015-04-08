@@ -93,13 +93,13 @@ pred = zeros(nb+2,nb+2,nz); % Just a placeholder for consistency w/ wce
 % Mortality
 %------------------------------
 
-mort = nonpredmort(true, bv, A, fe2n, nb, nz);
+mort = nonpredmort(true, bv.orig, A, fe2n, nb, nz);
 
 %------------------------------
 % Decomposition
 %------------------------------
 
-dec = decompremin(bv, A, nb, nz, I);
+dec = decompremin(bv.orig, A, nb, nz, I);
 
 %------------------------------
 % Gather all fluxes
@@ -321,7 +321,8 @@ function gra = ivlevorignew(bi, bj, m, d, th, kgra, temp, psi)
 % temp = nz x 1
 % psi = 2 x 1 (PL, ZS)
 
-[nz,nb] = size(b);
+
+[nb,nb,nz] = size(bi);
 [ipry,iprd] = find(m);
 
 gra = zeros(nb,nb,nz);
@@ -330,6 +331,8 @@ for ii = 1:length(ipry)
     bprey = permute(bi(ipry(ii),iprd(ii),:), [3 1 2]);
     bpred = permute(bj(ipry(ii),iprd(ii),:), [3 1 2]);
 
+    bzsg = permute(bi(3,iprd(ii),:), [3 1 2]); % visible prey for gourmet
+    bzlg = permute(bi(4,iprd(ii),:), [3 1 2]);
 %     bprey = b(:,ipry(ii));
 %     bpred = b(:,iprd(ii));
     thresh = th(ipry(ii),iprd(ii));
@@ -339,9 +342,9 @@ for ii = 1:length(ipry)
     mm = tempdep(m(ipry(ii),iprd(ii)), kgra(iprd(ii)), temp);
     
     if iprd(ii) == 5 && ipry(ii) == 2 % PL -> ZP
-        gourmet = exp(-psi(1) .* (b(:,3) + b(:,4)));
+        gourmet = exp(-psi(1) .* (bzsg + bzlg));
     elseif iprd(ii) == 5 && ipry(ii) == 3 % ZS -> ZP
-        gourmet = exp(-psi(2) .* b(:,4));
+        gourmet = exp(-psi(2) .* bzlg);
     else
         gourmet = ones(nz,1);
     end
