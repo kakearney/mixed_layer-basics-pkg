@@ -214,8 +214,11 @@ if Biovars.diapause
     it = find(t == Biovars.t);
     zltot = sum(oldbio(:,[Biovars.idx.zl1 Biovars.idx.zl2]), 2);
     if Biovars.zlsplit(it)
-        oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
-        oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
+        ztransfer = oldbio(:, Biovars.idx.zl1) * Biovars.zlsplit(it);
+        oldbio(:,Biovars.idx.zl2) = oldbio(:,Biovars.idx.zl2) + ztransfer;
+        oldbio(:,Biovars.idx.zl1) = oldbio(:,Biovars.idx.zl1) - ztransfer;
+%         oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
+%         oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
     elseif Biovars.zlcombine(it)
         oldbio(:,Biovars.idx.zl1) = zltot;
         oldbio(:,Biovars.idx.zl2) = 0;

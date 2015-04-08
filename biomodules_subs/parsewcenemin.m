@@ -69,15 +69,6 @@ function BioIn = parsewcenemin(varargin)
 %   scavfac:    factor by which the scavenging rate increases once over the
 %               above threshold ((molFe/m^3)^-1) [0]
 %
-%   diapause:   logical scalar, true to turn on diapause for ZL group
-%               [false]
-%
-%   dday:       1 x 3 vector, day of year when diapausing copepods begin
-%               migrating up, stop migrating up, and begin migrating down,
-%               respectively [120 134 243]
-%
-%   dfrac:      scalar, fraction of copepod population that migrates [0.9]
-%
 %   preyvis:    n x m array idicating how much of the prey fields each
 %               predator can see.  The first column holds depth values, and
 %               must span the full water column.  The remaining columns
@@ -86,6 +77,33 @@ function BioIn = parsewcenemin(varargin)
 %               groups see the full water column.  This is most relevant to
 %               nektonic predators in wce, but I've left the option for
 %               plankton as well.
+%
+%   pofesink:   scalar, sinking rate for particulate iron (m/s).  If not
+%               included, POFe sinks at the same speed as PON, as set in
+%               NemParam.setVPON input.
+%
+%   diapause:   logical scalar, true to turn on diapause for ZL group
+%               [false]
+%
+%   
+%   dpStart:    date on which diapausing copepods begin their downward
+%               migration each year.  Enter as a datestr-formatted
+%               month/day combo ['Sep 1']
+%
+%   dpEnd:      date on which diapausing copepods begin swimming back to
+%               the surface.  Enter as a datestr-formatted month/day combo
+%               ['Apr 1']
+%    
+%   dpEndSpan:  number of days over which copepods swim upward, before
+%               being recombined with the non-diapausing copepod group [10]
+%
+%   dpSpan:     number of days over which to spread the transfer of
+%               copepods from the non-diapausing group to the
+%               directed-swimming group [20]
+%
+%  dpPercent:   Percent of passive-ZL group population to transfer to the
+%               directed-swimming-ZL group *per time step* over the dpSpan
+%               period. [3]
 %
 % WCE only:
 %
@@ -197,9 +215,15 @@ p.addParamValue('scavthresh',   1e-6,                      @(x) isnumeric(x) && 
 p.addParamValue('scavfac',      0,                         @(x) isnumeric(x) && isscalar(x));    
 
 p.addParamValue('diapause',     false,                     @(x) islogical(x) && isscalar(x));
-p.addParamValue('dday',         [120 134 243],             @(x) isnumeric(x) && isvector(x) && length(x)==3);
-p.addParamValue('dfrac',        0.9,                       @(x) isnumeric(x) && isscalar(x) && x >= 0 && x <= 1);
-% p.addParamValue('grazeatdepth', true,                      @(x) islogical(x) && isscalar(x));
+p.addParamValue('dpStart',      'Sep 1',                   @(x) ischar(x));
+p.addParamValue('dpEnd',        'Apr 1',                   @(x) ischar(x));
+p.addParamValue('dpEndSpan',    10,                        @(x) isnumeric(x) && isscalar(x)); 
+p.addParamValue('dpSpan',       20,                        @(x) isnumeric(x) && isscalar(x)); 
+p.addParamValue('dpPercent',    3,                         @(x) isnumeric(x) && isscalar(x)); 
+
+p.addParamValue('preyvis',      [0 1; -5000 1],            @(x) isnumeric(x)); 
+
+p.addParamValue('pofesink',     NaN,                       @(x) isnumeric(x) && isscalar(x));  
 
 % Wce-only
 
@@ -212,7 +236,6 @@ p.addParamValue('temp',         0,                         @(x) isscalar(x));
 p.addParamValue('kgra',         0.0693,                    @(x) isvector(x));
 p.addParamValue('m0exp',        2,                         @(x) isnumeric(x) && (isscalar(x) || isvector(x)));
 % p.addParamValue('predatdepth',  true,                      @(x) islogical(x) && isscalar(x));
-p.addParamValue('preyvis',      [0 1; 5000 1],             @(x) isnumeric(x)); 
 
 % Nemuro-only
 

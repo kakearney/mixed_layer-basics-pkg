@@ -279,20 +279,25 @@ if any(isnan(oldbio(:)))
     warning('WCE: NaN in biology');
 end
 
-% Integrate biology over this time step
+% Split/combine ZL groups as necessary for diapause
 
 if Biovars.diapause
     it = find(t == Biovars.t);
     zltot = sum(oldbio(:,[Biovars.idx.zl1 Biovars.idx.zl2]), 2);
     if Biovars.zlsplit(it)
-        oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
-        oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
+        ztransfer = oldbio(:, Biovars.idx.zl1) * Biovars.zlsplit(it);
+        oldbio(:,Biovars.idx.zl2) = oldbio(:,Biovars.idx.zl2) + ztransfer;
+        oldbio(:,Biovars.idx.zl1) = oldbio(:,Biovars.idx.zl1) - ztransfer;
+%         oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
+%         oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
     elseif Biovars.zlcombine(it)
         oldbio(:,Biovars.idx.zl1) = zltot;
         oldbio(:,Biovars.idx.zl2) = 0;
     end
     oldbio(:,Biovars.idx.zl) = 0;
 end
+
+% Integrate biology over this time step
 
 [newbio, db, Flx, Diag, badthings] = integratebio(@wceode, t, dt, oldbio, Param, Biovars.odesolver{:});
 

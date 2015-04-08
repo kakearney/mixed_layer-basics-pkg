@@ -80,17 +80,12 @@ Biovars.scavthresh              = BioIn.scavthresh; % mol Fe m^-3
 % else
 Biovars.settle = zeros(Grd.nz,nbsv);
 Biovars.settle(:,nemidx(1:11)) = repmat(-Np.settle', Grd.nz, 1);        % m/s
-Biovars.settle(:,Biovars.idx.pofe) = Biovars.settle(:,Biovars.idx.pon); % Same as PON
+if isnan(BioIn.pofesink)
+    Biovars.settle(:,Biovars.idx.pofe) = Biovars.settle(:,Biovars.idx.pon); % Same as PON
+else
+    Biovars.settle(:,Biovars.idx.pofe) = -BioIn.pofesink; 
+end
 
-% Flags for grazing/predation at depth (only needed in diapause option)
-
-% if Biovars.diapause
-%     Biovars.grazeatdepth = BioIn.grazeatdepth;
-%     Biovars.predatdepth  = BioIn.predatdepth;
-% else
-%     Biovars.grazeatdepth = true; % Just in case user overrides the default
-%     Biovars.predatdepth  = true;
-% end
 
 % Prey visibility by predators
 
