@@ -156,7 +156,11 @@ if Opt.usepar
         p = parpool(Opt.nlabs);
         pcloseflag = true;
     end
-    nworker = p.NumWorkers;
+    if isempty(p)
+        nworker = 0;
+    else
+        nworker = p.NumWorkers;
+    end
 else
     nworker = 0;
 end
