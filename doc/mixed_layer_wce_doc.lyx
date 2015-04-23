@@ -312,7 +312,7 @@ on.
 \end_layout
 
 \begin_layout Standard
-Where not otherwise noted, the 
+Where not otherwise noted, the variables 
 \begin_inset Formula $x$
 \end_inset
 
@@ -1831,7 +1831,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename /Users/kakearney/Documents/Research/Working/fishBgcCoupling/ensembles/analysis/eechoPaperFigs/eecho_circleplot_colorflux.pdf
+	filename /Users/kakearney/Documents/Research/Working/fishBgcCoupling/ensembles/analysis/ffoxtrotPaperFigs/ffoxtrot_circleplot_colorflux.pdf
 	width 100text%
 
 \end_inset
@@ -2786,15 +2786,15 @@ Non-predatory mortality of birds, mammals, and sharks (albatross, sperm
  whales, toothed whales, elephant seals, seals/dolphins, fulmars, skuas/jaegers,
  puffins/shearwaters/storm petrels, kittiwakes, sharks): 90% redirected
  out of the system.
- Loss of these groups typically occur outside of the modeled system, either
+ Loss of these groups typically occurs outside of the modeled system, either
  out of the water or sinking quickly to deep water, and therefore little
  of their biomass is recycled to the nutrient pools of the modeled system.
 \end_layout
 
 \begin_layout Enumerate
 Non-predatory mortality of fisheries target species (pomfret, chum salmon,
- chinook/coho/steelhead, sockeye/pink, saury, sergestid shrimp): 90% is
- redirected to fishing loss.
+ chinook/coho/steelhead, sockeye/pink, saury): 90% is redirected to fishing
+ loss.
  Our initial Ecopath model does not explicitly resolve fisheries loss, instead
  including this loss with other non-predatory losses.
  This redirection removes these losses from the flux back into the nutrient
@@ -2802,7 +2802,24 @@ Non-predatory mortality of fisheries target species (pomfret, chum salmon,
 \end_layout
 
 \begin_layout Subsubsection
-Copepod diapause
+Directed movement of biological state variables
+\end_layout
+
+\begin_layout Standard
+The particulate forms of each nutrient (
+\begin_inset Formula $PON$
+\end_inset
+
+, 
+\begin_inset Formula $Opal$
+\end_inset
+
+, and 
+\begin_inset Formula $POFe$
+\end_inset
+
+) each include simple sinking behavior, with a default sinking velocity
+ of 40 m/day.
 \end_layout
 
 \begin_layout Standard
@@ -2810,16 +2827,16 @@ The
 \begin_inset Formula $ZL$
 \end_inset
 
- (copepod) functional group is the only one in the model that currently
- includes directed movement.
+ (copepod) functional group is the only living state variable in the model
+ that currently includes directed movement.
  This movement was added in order to capture the seasonal migration to depth
- of the majority of copepods in the subarctic Pacific.
+ of several dominant copepod species in the subarctic Pacific.
  To allow for this behavior, the 
 \begin_inset Formula $ZL$
 \end_inset
 
  group is represented by three state variables: one that displays the same
- passive behavior as the other plankton groups (
+ non-directed, passivey-mixed movement as the other plankton groups (
 \begin_inset Formula $ZL1$
 \end_inset
 
@@ -2841,30 +2858,19 @@ The
 \begin_inset Formula $ZL2$
 \end_inset
 
- group based on a start date, time span, and percentage supplied by the
- user.
+ group based on a diapause start date, time span, and percentage supplied
+ by the user.
  At the end of the diapause period, all biomass is transferred back to the
  
 \begin_inset Formula $ZL1$
 \end_inset
 
  group.
- All predator/prey calculations are performed using the summed biomass state
- variable, so that predators don't distinguish between the two subgroups.
- 
-\end_layout
-
-\begin_layout Standard
-\begin_inset Note Note
-status open
-
-\begin_layout Plain Layout
-TODO write this mathematically
-\end_layout
-
+ All predator/prey calculations are performed using the summed 
+\begin_inset Formula $ZL$
 \end_inset
 
-
+ biomass state variable.
 \end_layout
 
 \begin_layout Subsection
