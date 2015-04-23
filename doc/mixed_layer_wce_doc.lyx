@@ -2801,6 +2801,72 @@ Non-predatory mortality of fisheries target species (pomfret, chum salmon,
  pools, and allows us to quantify a rough estimate of fisheries landings.
 \end_layout
 
+\begin_layout Subsubsection
+Copepod diapause
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $ZL$
+\end_inset
+
+ (copepod) functional group is the only one in the model that currently
+ includes directed movement.
+ This movement was added in order to capture the seasonal migration to depth
+ of the majority of copepods in the subarctic Pacific.
+ To allow for this behavior, the 
+\begin_inset Formula $ZL$
+\end_inset
+
+ group is represented by three state variables: one that displays the same
+ passive behavior as the other plankton groups (
+\begin_inset Formula $ZL1$
+\end_inset
+
+), one that swims downward during the diapause period (dates of which are
+ set by user input) and upward afterward (
+\begin_inset Formula $ZL2$
+\end_inset
+
+), and one that reflects the sum of the other two groups.
+ All 
+\begin_inset Formula $ZL$
+\end_inset
+
+ biomass begins in the 
+\begin_inset Formula $ZL1$
+\end_inset
+
+ state variable, then is incrementally transferred to the 
+\begin_inset Formula $ZL2$
+\end_inset
+
+ group based on a start date, time span, and percentage supplied by the
+ user.
+ At the end of the diapause period, all biomass is transferred back to the
+ 
+\begin_inset Formula $ZL1$
+\end_inset
+
+ group.
+ All predator/prey calculations are performed using the summed biomass state
+ variable, so that predators don't distinguish between the two subgroups.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+TODO write this mathematically
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 Input data for the Eastern Subarctic Gyre
 \end_layout
