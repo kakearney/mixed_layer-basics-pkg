@@ -82,7 +82,7 @@
 \usepackage{authblk} % For author affiliations
 \author[1]{Kelly A. Kearney}
 \author[2]{Charles Stock}
-\affil[1]{Cooperative Institute for Marine and Atmospheric Studies, University of Miami Rosenstiel School of Marine and Atmospheric Science, 4301 Rickenbacker Causeway Miami, FL 33149 (corresponding author: kkearney@rsmas.miami.edu)}
+\affil[1]{University of Washington, Joint Institute for the Study of the Atmosphere and Ocean/NOAA Alaska Fisheries Science Center, 7600 Sand Point Way N.E., Building 4, Seattle, Washington 98115 (corresponding author: Kelly.Kearney@noaa.gov)}
 \affil[2]{NOAA Geophysical Fluid Dynamics Laboratory, 201 Forrestal Road, Princeton, NJ 08540-6649}
 
 % For tables
