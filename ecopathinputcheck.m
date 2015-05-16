@@ -138,12 +138,22 @@ if any(pbnotzero)
     A.pb(pbnotzero) = 0;
 end
 
+detbmissing = isnan(A.b) & A.pp == 2;
+if any(detbmissing)
+    if ~warnoff
+        warning('Detritus groups found with missing biomass; replacing with 0');
+    end
+    A.b(detbmissing) = 0;
+end
+
 % Added input field in later versions of code, derive from DC if not
 % present
 
 if ~isfield(A, 'import')
     A.import = 1 - sum(A.dc,1)';
 end
+
+
 
 %----------------------------
 % Check Ecosim-related 
