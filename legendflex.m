@@ -318,10 +318,10 @@ end
 % output. For some reason, the rendering issues disappear only if the
 % contour object(s) is listed last in the legend.  So for now, my
 % workaround for this is to change the order of the legend labels as
-% necessary.
+% necessary.  Issue appears to be fixed in 2015b.
 
 iscont = strcmp(get(h.labeledobj, 'type'), 'contour');
-cbugflag = ~verLessThan('matlab', '8.4.0') && any(iscont);
+cbugflag = ~verLessThan('matlab', '8.4.0') && verLessThan('matlab', '8.6.0') && any(iscont);
 if cbugflag
     
     if length(legin) == 1
