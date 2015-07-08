@@ -107,7 +107,14 @@ for iv = 1:nvar
 end
 
 file = fullfile(folder, sprintf('sim%04d.nc', iens)); %[vartable{iv,2} '.nc']);    
-ncwriteschema(file, A);
+if exist(file, 'file')
+    warning('WCE:fileexists', 'Specified outputfile/iens combo already exists; attempting to overwrite file');
+    W = warning('off', 'all'); % nc.createvariable thing again
+    ncwriteschema(file, A);
+    warning(W);
+else
+    ncwriteschema(file, A);
+end  
     
 ncid = netcdf.open(file, 'WRITE');
 vid = zeros(nvar,1);

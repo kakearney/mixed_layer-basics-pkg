@@ -21,12 +21,9 @@ if isempty(ext)
     file = [file '.nc'];
 end
 
-Info = nc_info(file);
-fld = fieldnames(Info);
-isds = strcmpi('dataset', fld);
-dsfld = fld{isds};
+Info = ncinfo(file);
+varnames = {Info.Variables.Name};
 
-varnames = {Info.(dsfld).Name};
 
 % Old files
 
@@ -34,12 +31,10 @@ ng = sum(regexpfound(varnames, 'FG\d\d'));
 
 if ng >= 1
 
-%     nc = netcdf(file);
     [shortname, longname] = deal(cell(ng,1));
     for ig = 1:ng
         shortname{ig} = sprintf('FG%02d', ig);
-        longname{ig} = nc_attget(file, shortname{ig}, 'long_name');
-%         longname{ig} = nc{shortname{ig}}.long_name(:);
+        longname{ig} = ncreadatt(file, shortname{ig}, 'long_name');
     end
 
 else
@@ -53,10 +48,8 @@ else
         
     shortname = varnames(isvar);
     longname = cell(size(shortname));
-%     nc = netcdf(file);
     for ig = 1:length(shortname)
-        longname{ig} = nc_attget(file, shortname{ig}, 'long_name');
-%         longname{ig} = nc{shortname{ig}}.long_name(:);
+        longname{ig} = ncreadatt(file, shortname{ig}, 'long_name');
     end
     
 end

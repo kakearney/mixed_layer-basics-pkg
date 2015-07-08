@@ -15,6 +15,9 @@ function varargout = np(action, varargin)
 % respectively.  The half-saturation constant (Kn), loss rate (lambdap),
 % and fraction of remineralization (mup) are provided by the user.
 %
+% Sarmiento J, Gruber N (2006) Ocean Biogeochemical Dynamics. Princeton
+% University Press 
+%
 % User-specified input variables (passed to mixed_layer as parameter/value
 % pairs)
 %

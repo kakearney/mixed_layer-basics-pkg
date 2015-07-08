@@ -543,20 +543,8 @@ for io = 1:nout
     Arch(io).bin = bin{io};
     Arch(io).nbin = max(Arch(io).bin);
     
-    % File stuff
-    
-%     if isnan(In.tempfilesz)
-%         Arch(io).nper = Arch(io).nbin;
-%     else
-%         Arch(io).nper = In.tempfilesz;
-%     end 
-   
-    % File names: each output needs a temporary file to save to.  I don't
-    % use the outputfile name as the temporary file name because
-    % occasionally you may want to recover a crashed run and not overwrite
-    % the temporary stuff.  The empty fields are so I don't encounter
-    % dissimilar structure errors in mixed_layer as I add fields after the
-    % first time step.
+	% File names: updated for new folder-based archiving, so .nc extension is 
+	% removed.
     
     if nout > 1
         Arch(io).outfile = regexprep(In.outputfile, '.nc', ['_' In.outputextension{io} '.nc']);
@@ -565,22 +553,14 @@ for io = 1:nout
     end
     [pth, fl, ex] = fileparts(Arch(io).outfile);
     Arch(io).outfile = fullfile(pth, fl);
-%     Arch(io).tempfile = [];
     Arch(io).avg = [];
     Arch(io).ncid = [];
     Arch(io).vid = [];
     
     Arch(io).iens = In.iens;
-%     Arch(io).nens = In.nens;
-%     Arch(io).new  = In.newfile;
-    
-%     Arch(io).fid = [];
+
 end
 
-% Temporary directory and cleanup, same for all
-
-% [Arch.tempdir] = deal(In.tempdir);
-% [Arch.cleanup] = deal(In.cleanup);
 
 
 

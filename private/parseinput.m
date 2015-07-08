@@ -126,7 +126,9 @@ if isdefault(3)
     In.ts_input = B.ts_input;
 end
 
-% Allow .nc extension to be left off of output file name
+% Allow .nc extension to be left off of output file name (this is mainly for 
+% back-compatibility with old single-file output... the .nc extension is 
+% removed when I set up the archiving folder in initialize.m)
 
 [blah,blah,ext] = fileparts(In.outputfile);
 if isempty(ext) || ~strcmp(ext, 'nc')

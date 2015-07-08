@@ -44,9 +44,15 @@ function varargout = mixed_layer(varargin)
 %   REQUIRED:
 %   ---------
 %
-%   outputfile: string, name of netcdf output file, where all model results
-%               will be saved.  If no extension is provided, .nc will be
-%               appended.
+%   outputfile: string, base name of output folder for simulation(s).  The
+%               folder name may be modified by the outputextension option
+%               (see archiving options, below).  The output folder will
+%               contain, at minimum, a dimensions.nc file with temporal and
+%               spatial grid details and sim0001.nc file with all other
+%               output variables.  If ensemble options are used (see
+%               archiving options, below, as well as runmixedlayer.m), more
+%               simXXXX.nc files may be added, or replaced with
+%               post-processed variable files.
 %
 %   MODEL GRID:
 %   -----------
@@ -174,7 +180,7 @@ function varargout = mixed_layer(varargin)
 %               tarch seconds.  Can also be one of these indicators, which
 %               represent non-even archiving intervals:
 %               -1: monthly
-%               If tarch isn't scalar, then multiple output files will be
+%               If tarch isn't scalar, then multiple output folders will be
 %               created; beginarchive and endarchive must be the same size
 %               as tarch. [86400]
 %
@@ -188,27 +194,26 @@ function varargout = mixed_layer(varargin)
 %
 %   outputextension:    cell array of strings, same size as tarch,
 %               beginarchive, and endarchive.  This string is appended to
-%               the outputfile string if multiple files are indicated by
-%               the other archiving variables.
+%               the outputfile string if multiple output folders are
+%               indicated by the other archiving variables.  If empty and
+%               tarch is non-scalar, then numeric suffixes will be used
+%               (i.e. outputfile1, outputfile2, etc.)
+%
+%   nens:       number of ensemble members in a set of mixed_layer runs, to
+%               be saved to the same output folder.  All ensemble member
+%               runs *must* use the same spatial and temporal grid,
+%               archiving options, and biological module; all other
+%               parameters can be varied between simulations. [1]
+%
+%   iens:       index of the current ensemble member.  Determines the
+%               number assigned to the output file name, and concatenation
+%               order if postprocessing is used (see runmixedlayer.m) [1]
 %
 %   stopafterinit: logical scalar.  If true, simulation is terminated after
 %               the initialization process, and no forward integration is
 %               performed.  This is for debugging purposes.  Using this
 %               option also leads to different output if mixed_layer is
 %               called with an output variable (see below) [false]
-%
-%   nens:       number of ensemble members in a set of mixed_layer runs, to
-%               be saved to the same set of files.  All ensemble member
-%               runs *must* use the same grid and biological module, such
-%               that results can be concatenated. [1]
-%
-%   iens:       index of the current ensemble member.  Determines which
-%               hyperslab to use when writing output to files. [1]
-%
-%   newfile:    logical scalar, indicating whether to create a new set of
-%               output files.  If false (as in ensemble runs), it assumes
-%               the files have already been created by a previous run.
-%               [true].
 %
 %   BIOLOGY:
 %   --------
@@ -260,12 +265,12 @@ function varargout = mixed_layer(varargin)
 %               (.mat extension should be included).  Only valid when a
 %               value is supplied for hotstartdn. ['mlhotstart.mat']
 %
-%   hotstartload: name of file to use when restarting.  Simulation will start
-%               at the last time index in the file.  All output will be the
-%               same as it would have been had the simulation been run from
-%               the beginning.
+%   hotstartload: name of file to use when restarting.  Simulation will
+%               start at the last time index in the file.  All output will
+%               be the same as it would have been had the simulation been
+%               run from the beginning.
 %
-%   DEPRECATED
+%   DEPRECATED (keeping here as a reminder, but don't use these)
 %   ----------
 %
 %   tempfilesz: number of data points (i.e. time steps) to read in at a
@@ -284,6 +289,11 @@ function varargout = mixed_layer(varargin)
 %               after the netcdf file is created.  Files will always be
 %               kept if the simulation crashes. [true] 
 %
+%   newfile:    logical scalar, indicating whether to create a new set of
+%               output files.  If false (as in ensemble runs), it assumes
+%               the files have already been created by a previous run.
+%               [true].
+%
 % Output variables:
 %
 %   Input:      1 x 1 structure holding the input variables used for the
@@ -295,8 +305,8 @@ function varargout = mixed_layer(varargin)
 %               'stopafterinit' flag is set to true, and is useful for
 %               debugging purposes.
 
-% Copyright 2011-2014 Kelly Kearney, Charlie Stock
-% kkearney@rsmas.miami.edu, charles.stock@noaa.gov
+% Copyright 2011-2015 Kelly Kearney, Charlie Stock
+% kakearney@gmail.com, charles.stock@noaa.gov
 
 %--------------------------
 % Setup
