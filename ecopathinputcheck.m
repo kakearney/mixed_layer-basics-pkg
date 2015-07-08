@@ -36,7 +36,7 @@ if nargin < 2
     warnoff = false;
 end
 
-if ~isscalar(A)
+if ~isscalar(A) || ~isstruct(A)
     error('Input structure must be scalar');
 end
 
@@ -44,14 +44,22 @@ end
 % Check sizes
 %----------------------------
 
+group0 = {'ngroup', 'ngear', 'nlive'};
+group1 = {'areafrac', 'b', 'pb', 'qb', 'ee', 'ge', 'gs', 'dtImp', 'bh', ...
+          'pp', 'immig', 'emig', 'emigRate', 'ba', 'baRate'};
+
+tf = isfield(A, [group0 group1]);
+if ~all(tf)
+    tmp = [group0 group1];
+    str = sprintf('%s, ', tmp{~tf});
+    error('Missing fields in input: %s', str(1:end-2));
+end
+      
 if ~all(cellfun(@(x) isscalar(x) && isnumeric(x), {A.ngroup, A.ngear, A.nlive}))
     error('ngroup, nlive, and ngear must be numeric scalars');
 end
 
-group1 = {'areafrac', 'b', 'pb', 'qb', 'ee', 'ge', 'gs', 'dtImp', 'bh', ...
-          'pp', 'immig', 'emig', 'emigRate', 'ba', 'baRate'};
 group1size = cellfun(@(x) size(A.(x)), group1, 'uni', 0);
-
 
 if ~isequal([A.ngroup 1], group1size{:})
     errlist = sprintf('  %s, %s, %s, %s, %s, %s, %s, %s,\n', group1{:});
