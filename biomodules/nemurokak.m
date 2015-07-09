@@ -10,8 +10,7 @@ function varargout = nemurokak(action, varargin)
 %
 % For input options, see parsewcenemin.m.
 
-
-% Copyright 2011 Kelly Kearney
+% Copyright 2011-2015 Kelly Kearney
 
 nin(1) = nargin(@init) + 1;
 nin(2) = nargin(@sourcesink) + 1;

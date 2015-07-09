@@ -328,18 +328,6 @@ if In.verbose
     fprintf('%s: %d\n\n', In.outputfile, In.iens);
 end
 
-% Add path to biomodules directory (assumes biomodules directory is located
-% in same folder as mixed_layer.m).
-%
-% Update: In preparation for public distribution, the file structure has
-% been altered.  I now assume all folders in the package are already on the
-% user's path.
-
-% userpath = path;
-% mlname = mfilename('fullpath');
-% mlpath = fileparts(mlname);
-% addpath(fullfile(mlpath, 'biomodules'));
-
 %--------------------------
 % Initialization
 %--------------------------
@@ -404,11 +392,6 @@ if ~isempty(In.hotstartload)
     Tmp = load(In.hotstartload);
     
     for ia = 1:length(Arch)
-%         Arch(ia).tempfile = tempname;
-%         copyfile([Tmp.Arch(ia).hotstarttempfile '.bin'], [Arch(ia).tempfile '.bin']);
-%         copyfile([Tmp.Arch(ia).hotstarttempfile '.mat'], [Arch(ia).tempfile '.mat']);
-        
-%         Arch(ia).fid = fopen([Arch(ia).tempfile '.bin'], 'a');
         Arch(ia).avg = Tmp.Arch(ia).avg;
     end
     
@@ -563,19 +546,6 @@ for it=tidx
     
     for io = 1:length(Arch)
         [Arch(io).avg, Arch(io).ncid, Arch(io).vid] = archivemldata(Grd, Arch(io), it, datatoarchive, tidx(1));
-
-%         if it == 1
-%             [Arch(io).avg, Arch(io).fid, Arch(io).tempfile] = archivemldata(Grd, Arch(io), Arch(io).outfile, it, datatoarchive, In.verbose);
-%         else
-%             Arch(io).avg = archivemldata(Grd, Arch(io), Arch(io).outfile, it, datatoarchive, In.verbose);
-%         end
-% 
-%         if it == tidx(1) % This way, close whether crash or not
-%             cu(io) = onCleanup(@() closefiles(Arch(io).ncid));
-%         end
-%         if it == tidx(end)
-%             arrayfun(@(x) netcdf.close(x), Arch(io).ncvid(:,1));
-%         end
     end
     if it == tidx(1)
         cu = onCleanup(@() closefiles([Arch.ncid]));
@@ -694,12 +664,6 @@ for it=tidx
         end
         
 %         Con = bioconservecheck(Con, Bio.bio, it, 2);
-     
-        % Tag-along mixing
-        
-%         if In.hastag
-%             Bio.bio = tagalongmixing(premixbio, Bio.bio, Biovars.tagpairs);
-%         end
             
         % NaN check
         
@@ -727,7 +691,6 @@ for it=tidx
         presinkbio = Bio.bio;
         for ibio = 1:size(Bio.bio,2)
             Bio.bio(:,ibio) = verticalflux(Bio.bio(:,ibio), Bio.wsink(:,ibio), In.dt, In.dz, In.openbottom);
-%             Bio.bio(:,ibio) = advectsemilag(Grd.z', Bio.bio(:,ibio)', Ts.wfun, Grd.time(it), In.dt, 'nearest')';
         end
         
 %         Con = bioconservecheck(Con, Bio.bio, it, 3);
@@ -746,13 +709,10 @@ for it=tidx
         Ts.T = verticalflux(Ts.T, w, In.dt, In.dz);
         Ts.S = verticalflux(Ts.S, w, In.dt, In.dz);
         
-%         Ts.T = advectsemilag(Grd.z, Ts.T, Ts.wfun, Grd.time(it), In.dt, 'nearest');
-%         Ts.S = advectsemilag(Grd.z, Ts.S, Ts.wfun, Grd.time(it), In.dt, 'nearest');
         if In.hasbio
             for ibio = 1:size(Bio.bio,2)
                 if Bio.ismixed(ibio)
                     Bio.bio(:,ibio) = verticalflux(Bio.bio(:,ibio), w, In.dt, In.dz);
-%                     Bio.bio(:,ibio) = advectsemilag(Grd.z, Bio.bio(:,ibio), Ts.wfun, Grd.time(it), In.dt, 'nearest');
                 end
             end
         end
@@ -762,14 +722,12 @@ for it=tidx
   
     kin_energy(it) = sum(Mmntm.U.^2 + Mmntm.V.^2);
     if any(isnan(Mmntm.U+Mmntm.V))
-%         nc_addhist(In.outputfile, 'Simulation crashed: NaNs in velocity field');
         error('NaNs in velocity field');
     end
 
     % CAS: a quick check for imaginary numbers
     
     if any(~isreal(Mmntm.U + Mmntm.V + Ts.S + Ts.T))
-%         nc_addhist(In.outputfile, 'Simulation crashed: Imaginary numbers in physical fields');
         error('Imaginary numbers in physical fields');
     end
   
@@ -805,12 +763,6 @@ for it=tidx
     % Save data for future hot start
     
     if it == Grd.savehot
-%         for ia = 1:length(Arch)
-%             newtemp = regexprep(Arch(ia).outfile, '.nc', '_startsave');
-%             copyfile([Arch(ia).tempfile '.bin'], [newtemp '.bin']);
-%             copyfile([Arch(ia).tempfile '.mat'], [newtemp '.mat']);
-%             Arch(ia).hotstarttempfile = newtemp;
-%         end
         save(In.hotstartsave);
     end
 
@@ -825,10 +777,6 @@ if In.verbose
 	fprintf('\nMixed layer model completed successfully: %f s\n', runtime);
 end
 
-% Add history attribute to file indicating successfull run
-
-% nc_addhist(In.outputfile, 'Mixed_layer simulation completed successfully');
-
 % Return input variables if output requested
 
 if nargout == 1
@@ -839,10 +787,6 @@ end
 % Cleanup
 %--------------------------
 
-% Restore path to user's
-
-% path(userpath);
-
 % Debugging
 
 if In.hasbio && isfield(Bio.Params, 'cfid')
@@ -851,8 +795,6 @@ end
 
 
 function closefiles(id)
-
-% fprintf('Closing %d files\n', length(id));
 for ii = 1:length(id)
     netcdf.close(id(ii));
 end

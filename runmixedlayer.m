@@ -26,13 +26,11 @@ function runmixedlayer(In, varargin)
 %               folder will will be named <folder>/<name_outputextension>
 %               ['.']
 %
-%   usepar:     true to run simulations in parallel via matlabpool and
-%               parfor, false to run one at a time.  Note: under new
-%               rewrite, parallel and netcdf buffers don't play well
-%               together, leading to missing/incorrect output in files.
-%               For now, stick to serial. [false]
+%   usepar:     true to run simulations in parallel via parpool and
+%               parfor, false to run one at a time. [false]
 %
-%   nlabs:      number of labs to run if running in parallel [4]
+%   nlabs:      number of labs (i.e. workers) to run if running in parallel
+%               [4] 
 %
 %   idx:        indices of input structure to actually run after setup
 %               [1:length(In)]
