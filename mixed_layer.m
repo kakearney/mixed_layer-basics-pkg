@@ -683,10 +683,16 @@ for it=tidx
         end
         
         % Other vertical movement
+        
+        PhysParams = Ts;
+        PhysParams.par = Ht.Qi.*In.prad1;
+        PhysParams.par24 = Ht.meanQi(it).*In.prad1;
+        PhysParams.krad1 = In.krad1;
+        
+        GrdParams = struct('z', Grd.z, 'dz', In.dz, 't', Grd.time(it), 'dt', In.dt);
                 
         Bio.wsink = feval(In.biofun, 'vertmove', Bio.bio, ...
-                          Ht.meanQi(it), Ts.T, Grd.z, In.dz, ...
-                          Bio.Params, Grd.time(it), In.dt);
+                              PhysParams, Bio.Params, GrdParams);
             
         presinkbio = Bio.bio;
         for ibio = 1:size(Bio.bio,2)
@@ -738,9 +744,19 @@ for it=tidx
             warning('ML: NaN in biology')
         end
         
+%         PhysParams = Ts;
+%         PhysParams.par = Ht.Qi.*In.prad1;
+%         PhysParams.par24 = Ht.meanQi(it).*In.prad1;
+%         PhysParams.krad1 = In.krad1;
+%         
+%         GrdParams = struct('z', Grd.z, 'dz', In.dz, 't', Grd.time(it), 'dt', In.dt);
+%         
         [Bio.bio, Bio.diag] = feval(In.biofun, 'sourcesink', Bio.bio, ...
-                                  Ht.meanQi(it).*In.prad1, Ts.T, Grd.z, In.dz, ...
-                                  Bio.Params, Grd.time(it), In.dt);
+                              PhysParams, Bio.Params, GrdParams);
+        
+%         [Bio.bio, Bio.diag] = feval(In.biofun, 'sourcesink', Bio.bio, ...
+%                                   Ht.meanQi(it).*In.prad1, Ts.T, Grd.z, In.dz, ...
+%                                   Bio.Params, Grd.time(it), In.dt);
                               
         if any(isnan(Bio.bio(:)))
             warning('ML: NaN in biology')

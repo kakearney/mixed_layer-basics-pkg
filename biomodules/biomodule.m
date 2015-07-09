@@ -4,9 +4,9 @@ function varargout = biomodule(action, varargin)
 % [bioinit, ismixed, bottomval, Biovars, names] = ...
 %    biomodule('init', In, Grd);
 % [newbio, diag] = ...
-%    biomodule('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%    biomodule('sourcesink', oldbio, PhysParams, BioParams, GrdParams);
 % wsink = ...
-%    biomodule('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%    biomodule('vertmove', oldbio, PhysParams, BioParams, GrdParams);
 %
 % This is a template for a biological module for the mixed layer model.
 % The module is called in three different modes during the mixed_layer
@@ -67,20 +67,40 @@ function varargout = biomodule(action, varargin)
 %
 % Input variables for 'sourcesink' and 'vertmove' mode:
 %
+%
 %   oldbio:     ndepth x nbsv array, profiles of biological state variables
 %               at current time step
 %
-%   meanqi:     mean incoming solar radiation (W m^-2)
+%   PhysParams: 1 x 1 structure holding water-column physical properties
+%               relevant to biological calculations:
 %
-%   temp:       ndepth x 1 array, temperature profile (deg C)
+%               par:    photosynthetically active radiation (W m^-2)
 %
-%   z:          ndepth x 1 array, depth grid for model (m)
+%               par24:  photsyntheticaly active radiation, averaged over
+%                       the previous 24 hours (W m^-2)  
 %
-%   dz:         depth grid cell size (m)
+%               kpar:   attenuation coefficient for PAR (m^-1)
 %
-%   t:          current time (s)
+%               T:      nz x 1 array of temperature
 %
-%   dt:         time step (s)
+%               S:      nz x 1 array of salinity
+%
+%               Sig:    nz x 1 array of density
+%
+%   BioParams:  1 x 1 structure holding all biology-related parameters set
+%               up in the 'init' phase.  The fields of this structure will
+%               vary based on the specific biological module being used.
+%
+%   GrdParams:  1 x 1 structure holding parameters related to the
+%               spatiotemporal model grid:
+%
+%               z:      ndepth x 1 array, depth grid for model (m)
+%
+%               dz:     depth grid cell size (m)
+%
+%               t:      current time (s)
+%
+%               dt:     time step (s)
 %
 % Output variables for 'sourcesink' mode:
 %
@@ -146,8 +166,7 @@ diagnames = {'testDiagnostic', 'test diagnostic variable', 'no units'};
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt);
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
 
 % MODIFY CODE HERE
                          
@@ -156,7 +175,7 @@ diag = rand(size(oldbio,1), 1);
 
 %**************************************************************************
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
 % MODIFY CODE HERE
 

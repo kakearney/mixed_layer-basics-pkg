@@ -1,16 +1,15 @@
 function varargout = npzd(action, varargin)
 %NPZD Nutrient-phytoplankton-zooplankton-detritus biological module
 %
-% See biomodule.m for full syntax details.
-%
 % This module adds a nutrient-phytoplankton-zooplankton-detritus model. 
 % The dynamics for phytoplankton and zooplankton growth are the same as
 % the NPZ model.  Egestion and mortality go to a detritus pool, which is
 % remineralized at a constant rate to the nutrient pool.  Excretion goes
 % directly to the nutrient pool.
 %
-% User-specified input variables (passed to mixed_layer as parameter/value
-% pairs)
+% See biomodule.m for function syntax descriptions.  The following 
+% fields must be present in the In structure (passed to mixed_layer as
+% parameter/value pairs):
 %
 %
 %   n:          n x 2 depth profile of initial nutrients, where column 1

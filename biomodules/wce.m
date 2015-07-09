@@ -1,8 +1,6 @@
 function varargout = wce(action, varargin)
 %WCE Water column ecosystem biological module
 %
-% See biomodule.m for full syntax details.
-%
 % This module simulates a mixed planktonic-nektonic ecosystem, based on
 % a combination of models derived mainly from NEMURO and Kerim Aydin's
 % version of Ecosim, with a little bit of COBALT thrown in for flavor.
@@ -13,10 +11,11 @@ function varargout = wce(action, varargin)
 % column; multiply by the thickness of the surface layer to get the true
 % biomass, in mol N/m^2.
 %
-% For input options, see parsewcenemin.m.
+% See biomodule.m for function syntax descriptions.  For fields that must be 
+% present in the In structure (passed to mixed_layer as parameter/value pairs), 
+% see the help for parsewcenemin.m. 
 
-
-% Copyright 2008 Kelly Kearney
+% Copyright 2008-2015 Kelly Kearney
 
 nin(1) = nargin(@init) + 1;
 nin(2) = nargin(@sourcesink) + 1;
@@ -266,14 +265,15 @@ end
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt)
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
 
-Param       = Biovars;
-Param.irr   = meanqi; 
-Param.temp  = temperature;
-Param.z     = z;
-Param.dz    = dz;
+% Set up parameters that will be passed to main ODE function
+
+Param      = B;
+Param.irr  = P.par24;
+Param.temp = P.T;
+Param.z    = G.z;
+Param.dz   = G.dz;
     
 if any(isnan(oldbio(:)))
     warning('WCE: NaN in biology');
@@ -281,37 +281,35 @@ end
 
 % Split/combine ZL groups as necessary for diapause
 
-if Biovars.diapause
-    it = find(t == Biovars.t);
-    zltot = sum(oldbio(:,[Biovars.idx.zl1 Biovars.idx.zl2]), 2);
-    if Biovars.zlsplit(it)
-        ztransfer = oldbio(:, Biovars.idx.zl1) * Biovars.zlsplit(it);
-        oldbio(:,Biovars.idx.zl2) = oldbio(:,Biovars.idx.zl2) + ztransfer;
-        oldbio(:,Biovars.idx.zl1) = oldbio(:,Biovars.idx.zl1) - ztransfer;
-%         oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
-%         oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
-    elseif Biovars.zlcombine(it)
-        oldbio(:,Biovars.idx.zl1) = zltot;
-        oldbio(:,Biovars.idx.zl2) = 0;
+if B.diapause
+    it = find(G.t == B.t);
+    zltot = sum(oldbio(:,[B.idx.zl1 B.idx.zl2]), 2);
+    if B.zlsplit(it)
+        ztransfer = oldbio(:, B.idx.zl1) * B.zlsplit(it);
+        oldbio(:,B.idx.zl2) = oldbio(:,B.idx.zl2) + ztransfer;
+        oldbio(:,B.idx.zl1) = oldbio(:,B.idx.zl1) - ztransfer;
+    elseif B.zlcombine(it)
+        oldbio(:,B.idx.zl1) = zltot;
+        oldbio(:,B.idx.zl2) = 0;
     end
-    oldbio(:,Biovars.idx.zl) = 0;
+    oldbio(:,B.idx.zl) = 0;
 end
 
 % Integrate biology over this time step
 
-[newbio, db, Flx, Diag, badthings] = integratebio(@wceode, t, dt, oldbio, Param, Biovars.odesolver{:});
+[newbio, db, Flx, Diag, badthings] = integratebio(@wceode, G.t, G.dt, oldbio, Param, B.odesolver{:});
 
-if Biovars.diapause
-    newbio(:,Biovars.idx.zl) = newbio(:,Biovars.idx.zl1) + newbio(:,Biovars.idx.zl2);
+if B.diapause
+    newbio(:,B.idx.zl) = newbio(:,B.idx.zl1) + newbio(:,B.idx.zl2);
 end
 
 % Check and correct for silica issue
 
-isneg = newbio(:, Biovars.idx.plsi) < 0;
+isneg = newbio(:, B.idx.plsi) < 0;
 Diag.extrasi = zeros(size(isneg));
-Diag.extrasi(isneg) = -newbio(isneg,Biovars.idx.plsi);
-newbio(isneg, Biovars.idx.plsi) = 0;
-badthings(isneg, Biovars.idx.plsi) = false;
+Diag.extrasi(isneg) = -newbio(isneg,B.idx.plsi);
+newbio(isneg, B.idx.plsi) = 0;
+badthings(isneg, B.idx.plsi) = false;
 
 % Check for problems
 
@@ -322,11 +320,11 @@ if any(badthings(:))
     for ii = 1:nb
         badbio = newbio(ridx(ii), cidx(ii));
         if isnan(badbio)
-            errstr{ii} = sprintf('NaN: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t);
+            errstr{ii} = sprintf('NaN: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t);
         elseif isinf(badbio)
-            errstr{ii} = sprintf('Inf: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t);
+            errstr{ii} = sprintf('Inf: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t);
         elseif badbio < 0
-            errstr{ii} = sprintf('Neg: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t); 
+            errstr{ii} = sprintf('Neg: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t); 
         end
     end
     errstr = sprintf('  %s\n', errstr{:});
@@ -336,18 +334,18 @@ end
 
 % Diagnostics: Intermediate fluxes
 
-nd = size(Biovars.flux,1);
+nd = size(B.flux,1);
 
-fluxes = zeros(length(z),nd);
+fluxes = zeros(length(G.z),nd);
 for id = 1:nd
-    fluxes(:,id) = Flx(1).(Biovars.flux{id,1})(Biovars.flux{id,2},Biovars.flux{id,3},:);
+    fluxes(:,id) = Flx(1).(B.flux{id,1})(B.flux{id,2},B.flux{id,3},:);
 end
 
 % Diagnistics: Other
 
 ndiag = 15;
 if isempty(Diag) % If use any solver other than euler
-    diag = zeros(length(z), ndiag);
+    diag = zeros(length(G.z), ndiag);
 else
     diag = struct2cell(Diag);
     diag = cat(2, diag{:});
@@ -369,19 +367,19 @@ diag = [db fluxes diag];
                       
 %**************************************************************************
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
-wsink = Biovars.settle;
+wsink = B.settle;
 
-if Biovars.diapause
+if B.diapause
     
-    it = find(Biovars.t == t);
+    it = find(B.t == G.t);
     
-    if Biovars.zlswim(it) == 1
-        wsink(z < -10, Biovars.idx.zl2) = 80./86400; % swim up
-    elseif Biovars.zlswim(it) == -1
-        wsink(z > -400, Biovars.idx.zl2) = -80./86400; % stay down
-        wsink(z < -450, Biovars.idx.zl2) = 80./86400;
+    if B.zlswim(it) == 1
+        wsink(G.z < -10, B.idx.zl2) = 80./86400; % swim up
+    elseif B.zlswim(it) == -1
+        wsink(G.z > -400, B.idx.zl2) = -80./86400; % stay down
+        wsink(G.z < -450, B.idx.zl2) = 80./86400;
     end
     
 end

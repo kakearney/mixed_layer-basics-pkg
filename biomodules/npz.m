@@ -1,8 +1,6 @@
 function varargout = npz(action, varargin)
 %NPZ Nutrient-phytoplankton-zooplankton biological module
 %
-% See biomodule.m for full syntax details.
-%
 % This module adds a simple nutrient-phytoplankton-zooplankton model to
 % the mixed_layer model.  The model is based on the NPZ model described
 % in Sarmiento and Gruber (2008) Chapter 4, where
@@ -21,8 +19,9 @@ function varargout = npz(action, varargin)
 % Sarmiento J, Gruber N (2006) Ocean Biogeochemical Dynamics. Princeton
 % University Press 
 %
-% User-specified input variables (passed to mixed_layer as parameter/value
-% pairs)
+% See biomodule.m for function syntax descriptions.  The following 
+% fields must be present in the In structure (passed to mixed_layer as
+% parameter/value pairs):
 %
 %   n:          n x 2 depth profile of initial nutrients, where column 1
 %               gives the depth values (negative down) and column 2 holds
@@ -164,17 +163,14 @@ diagnames = {...
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt);
-
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
                                             
 % Integrate using Runge-Kutta solver over the full timestep
 
 [tout,newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss] = ...
-    odewrap(@ode4, @npzode, [t t+dt], oldbio, [], ...
-            temperature, meanqi, -z, dz, Biovars.kn, Biovars.kp, ...
-            Biovars.mup, Biovars.muz, Biovars.lambdap, Biovars.lambdaz, ...
-            Biovars.g, Biovars.gammaz);
+    odewrap(@ode4, @npzode, [G.t G.t+G.dt], oldbio, [], P.T, P.par24, ...
+            -G.z, G.dz, B.kn, B.kp, B.mup, B.muz, B.lambdap, B.lambdaz, ...
+            B.g, B.gammaz);
                     
 [newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss] = ...
     endonly(newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss);
@@ -185,10 +181,9 @@ function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
 
 if any(isnan(newbio(:)) | isinf(newbio(:)) | newbio(:) < 0)
     [tout,newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss] = ...
-        odewrap(@ode45, @npzode, [t t+dt], oldbio, [], ...
-                temperature, meanqi, -z, dz, Biovars.kn, Biovars.kp, ...
-                Biovars.mup, Biovars.muz, Biovars.lambdap, Biovars.lambdaz, ...
-                Biovars.g, Biovars.gammaz);
+    odewrap(@ode45, @npzode, [G.t G.t+G.dt], oldbio, [], P.T, P.par24, ...
+            -G.z, G.dz, B.kn, B.kp, B.mup, B.muz, B.lambdap, B.lambdaz, ...
+            B.g, B.gammaz);
 
     [newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss] = ...
         endonly(newbio,dbdt, phytoUptake, phytoLoss, zpGraze, zooLoss);
@@ -229,7 +224,7 @@ dbdt(:,3) = gammaz.*zpGraze - zooLoss;
 
 %**************************************************************************
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
 wsink = zeros(size(oldbio));
 

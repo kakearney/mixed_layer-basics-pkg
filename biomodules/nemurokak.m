@@ -8,7 +8,9 @@ function varargout = nemurokak(action, varargin)
 % well as options to switch between single-resource and multi-resource
 % grazing functional responses.
 %
-% For input options, see parsewcenemin.m.
+% See biomodule.m for function syntax descriptions.  For fields that must be 
+% present in the In structure (passed to mixed_layer as parameter/value pairs), 
+% see the help for parsewcenemin.m. 
 
 % Copyright 2011-2015 Kelly Kearney
 
@@ -198,38 +200,43 @@ end
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt);
-                         
-Param       = Biovars;
-Param.irr   = meanqi; 
-Param.temp  = temperature;
-Param.z     = z;
-Param.dz    = dz;
-             
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
+
+% Set up parameters that will be passed to main ODE function
+
+Param      = B;
+Param.irr  = P.par24;
+Param.temp = P.T;
+Param.z    = G.z;
+Param.dz   = G.dz;
+                                      
 % For diapause splitting/combining, need to do this outside the ODE
 
-if Biovars.diapause
-    it = find(t == Biovars.t);
-    zltot = sum(oldbio(:,[Biovars.idx.zl1 Biovars.idx.zl2]), 2);
-    if Biovars.zlsplit(it)
-        ztransfer = oldbio(:, Biovars.idx.zl1) * Biovars.zlsplit(it);
-        oldbio(:,Biovars.idx.zl2) = oldbio(:,Biovars.idx.zl2) + ztransfer;
-        oldbio(:,Biovars.idx.zl1) = oldbio(:,Biovars.idx.zl1) - ztransfer;
-%         oldbio(:,Biovars.idx.zl2) = Biovars.dfrac .* zltot;
-%         oldbio(:,Biovars.idx.zl1) = zltot - oldbio(:,Biovars.idx.zl2);
-    elseif Biovars.zlcombine(it)
-        oldbio(:,Biovars.idx.zl1) = zltot;
-        oldbio(:,Biovars.idx.zl2) = 0;
+if B.diapause
+    it = find(G.t == B.t);
+    zltot = sum(oldbio(:,[B.idx.zl1 B.idx.zl2]), 2);
+    if B.zlsplit(it)
+        ztransfer = oldbio(:, B.idx.zl1) * B.zlsplit(it);
+        oldbio(:,B.idx.zl2) = oldbio(:,B.idx.zl2) + ztransfer;
+        oldbio(:,B.idx.zl1) = oldbio(:,B.idx.zl1) - ztransfer;
+    elseif B.zlcombine(it)
+        oldbio(:,B.idx.zl1) = zltot;
+        oldbio(:,B.idx.zl2) = 0;
     end
-    oldbio(:,Biovars.idx.zl) = 0;
+    oldbio(:,B.idx.zl) = 0;
 end
 
-[newbio, db, Flx, Diag, badthings] = integratebio(@nemurokakode, t, dt, oldbio, Param, Biovars.odesolver{:});
+% Run main ODE
 
-if Biovars.diapause
-    newbio(:,Biovars.idx.zl) = newbio(:,Biovars.idx.zl1) + newbio(:,Biovars.idx.zl2);
+[newbio, db, Flx, Diag, badthings] = integratebio(@nemurokakode, G.t, G.dt, oldbio, Param, B.odesolver{:});
+
+% Recombine ZL groups for physical mixing
+
+if B.diapause
+    newbio(:,B.idx.zl) = newbio(:,B.idx.zl1) + newbio(:,B.idx.zl2);
 end
+
+% Check for errors
 
 if any(badthings(:))
     
@@ -239,11 +246,11 @@ if any(badthings(:))
     for ii = 1:nb
         badbio = newbio(ridx(ii), cidx(ii));
         if isnan(badbio)
-            errstr{ii} = sprintf('NaN: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t);
+            errstr{ii} = sprintf('NaN: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t);
         elseif isinf(badbio)
-            errstr{ii} = sprintf('Inf: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t);
+            errstr{ii} = sprintf('Inf: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t);
         elseif badbio < 0
-            errstr{ii} = sprintf('Neg: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), t); 
+            errstr{ii} = sprintf('Neg: depth %d, critter %d, time = %d', ridx(ii), cidx(ii), G.t); 
         end
     end
     errstr = sprintf('  %s\n', errstr{:});
@@ -252,9 +259,7 @@ if any(badthings(:))
 
 end
 
-% If diapause, add the ZL groups
-
-% Diagnostics
+% Diagnostics: Other
 
 ndiag = 14;
 
@@ -265,12 +270,9 @@ else
     diag = cat(2, diag{:});
 end
 
-% nemflux = findnemflux(nemuroflexinput(Biovars), 'list');
-% nemflux{1} = [nemflux{1} Biovars.reroute(:,1)'];            % add rerouted
-% nemflux{2} = [nemflux{2} cell2mat(Biovars.reroute(:,2)')];  % add rerouted
-% nemflux{3} = [nemflux{3} cell2mat(Biovars.reroute(:,4)')];  % add rerouted
+% Diagnostics: Intermediate fluxes
 
-nemflux = Biovars.flux;
+nemflux = B.flux;
 nfx = size(nemflux,1);
 nz = size(newbio,1);
 fluxes = zeros(nz, nfx);
@@ -283,36 +285,22 @@ diag = [diag fluxes];
 %**************************************************************************
 
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
-wsink = Biovars.settle;
+wsink = B.settle;
 
-if Biovars.diapause
+if B.diapause
     
-    it = find(Biovars.t == t);
+    it = find(B.t == G.t);
     
-    if Biovars.zlswim(it) == 1
-        wsink(z < -10, Biovars.idx.zl2) = 80./86400; % swim up
-    elseif Biovars.zlswim(it) == -1
-        wsink(z > -400, Biovars.idx.zl2) = -80./86400; % stay down
-        wsink(z < -450, Biovars.idx.zl2) = 80./86400;
+    if B.zlswim(it) == 1
+        wsink(G.z < -10, B.idx.zl2) = 80./86400; % swim up
+    elseif B.zlswim(it) == -1
+        wsink(G.z > -400, B.idx.zl2) = -80./86400; % stay down
+        wsink(G.z < -450, B.idx.zl2) = 80./86400;
     end
     
 end
-
-% wsink = ones(size(z)) * Biovars.sink;
-% 
-% if Biovars.diapause
-%     it = find(Biovars.t == t);
-%     
-%     if Biovars.zlswim(it) == 1
-%         wsink(z < -10, Biovars.idx.zl2) = 80./86400; % swim up
-%     elseif Biovars.zlswim(it) == -1
-%         wsink(z > -400, Biovars.idx.zl2) = -80./86400; % stay down
-%         wsink(z < -450, Biovars.idx.zl2) = 80./86400;
-%     end
-%     
-% end
 
 
 

@@ -18,8 +18,9 @@ function varargout = np(action, varargin)
 % Sarmiento J, Gruber N (2006) Ocean Biogeochemical Dynamics. Princeton
 % University Press 
 %
-% User-specified input variables (passed to mixed_layer as parameter/value
-% pairs)
+% See biomodule.m for function syntax descriptions.  The following 
+% fields must be present in the In structure (passed to mixed_layer as
+% parameter/value pairs):
 %
 %   n:      n x 2 depth profile of initial nutrients, where column 1 gives
 %           the depth values (negative down) and column 2 holds the
@@ -134,16 +135,13 @@ diagnames = {...
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt);
-
-                       
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
+          
 % Integrate using Runge-Kutta solver over the full timestep
 
 [tout,newbio,dbdt,ps,ploss,premin] = ...
-                odewrap(@ode4, @biochange, [t t+dt], oldbio, [], ...
-                        temperature, meanqi, -z, dz, Biovars.remin, ...
-                        Biovars.loss, Biovars.kn);
+    odewrap(@ode4, @npode, [G.t G.t+G.dt], oldbio, [], P.T, ...
+            P.par24, -G.z, G.dz, B.remin, B.loss, B.kn);
 
 [newbio,dbdt,ps,ploss,premin] = endonly(newbio,dbdt,ps,ploss,premin);
 
@@ -151,9 +149,9 @@ function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
 % solver to try instead
 
 if any(isnan(newbio(:)) | isinf(newbio(:)) | newbio(:) < 0)
-    [tout,newbio,dbdt,ps,ploss,premin] = odewrap(@ode45, @biochange, [t t+dt], oldbio, [], ...
-                        temperature, meanqi, -z, dz, Biovars.remin, ...
-                        Biovars.loss, Biovars.kn);
+    [tout,newbio,dbdt,ps,ploss,premin] = ...
+        odewrap(@ode45, @npode, [G.t G.t+G.dt], oldbio, [], P.T, ...
+                P.par24, -G.z, G.dz, B.remin, B.loss, B.kn);
     [newbio,dbdt,ps,ploss,premin] = endonly(newbio,dbdt,ps,ploss,premin);
 end
 
@@ -169,7 +167,7 @@ diag = [ps ploss premin];
 % Rate of change function
 %-----------------------------
 
-function [dbdt, ps, ploss, premin] = biochange(t, bio, temp, irr, z, dz, remin, loss, kn)
+function [dbdt, ps, ploss, premin] = npode(t, bio, temp, irr, z, dz, remin, loss, kn)
 
 nutrients = bio(:,1);
 phyto     = bio(:,2);
@@ -189,7 +187,7 @@ dbdt(:,2) = ps - ploss; % phyto .* (psRate - loss);
 
 %**************************************************************************
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
 wsink = zeros(size(oldbio));
 

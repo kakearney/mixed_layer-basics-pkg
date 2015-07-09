@@ -1,15 +1,14 @@
 function varargout = tracerforced(action, varargin)
 %TRACERFORCED Generic tracer with deep-water concentration held constant
 %
-% See biomodule.m for full syntax details.
-%
 % This module adds a single tracer variable to the mixed_layer model. 
 % The tracer has no sources or sinks, but is forced during mixing so that
 % the bottom grid cell maintains the same tracer concentration as was
 % supplied in the initial profile.
 %
-% User-specified input variables (passed to mixed_layer as parameter/value
-% pairs):
+% See biomodule.m for function syntax descriptions.  The following 
+% fields must be present in the In structure (passed to mixed_layer as
+% parameter/value pairs):
 %
 %   tracer: n x 2 depth profile of tracer, where column 1 gives the depth
 %           values (negative down) and column 2 holds the initial

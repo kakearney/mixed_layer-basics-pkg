@@ -1,13 +1,12 @@
 function varargout = tracer(action, varargin)
 %TRACER Generic tracer
 %
-% See biomodule.m for full syntax details.
-%
 % This module adds a simple tracer variable to the mixed_layer model.  The
 % tracer has no sources or sinks.
 %
-% User-specified input variables (passed to mixed_layer as parameter/value
-% pairs):
+% See biomodule.m for function syntax descriptions.  The following 
+% fields must be present in the In structure (passed to mixed_layer as
+% parameter/value pairs):
 %
 %   tracer: n x 2 depth profile of tracer, where column 1 gives the depth
 %           values (negative down) and column 2 holds the initial
@@ -64,14 +63,13 @@ diagnames = cell(0);
 
 %**************************************************************************
 
-function [newbio, diag] = sourcesink(oldbio, meanqi, temperature, z, dz, ...
-                             Biovars, t, dt);
+function [newbio, diag] = sourcesink(oldbio, P, B, G)
                          
 newbio = oldbio;
 diag = [];
 
 %**************************************************************************
 
-function wsink = vertmove(oldbio, meanqi, temperature, z, dz, Biovars, t, dt)
+function wsink = vertmove(oldbio, P, B, G)
 
 wsink = zeros(size(oldbio));
