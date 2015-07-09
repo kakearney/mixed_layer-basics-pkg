@@ -24,12 +24,9 @@ function varargout = biomodule(action, varargin)
 %     in the 'sourcesink' mode. 
 %
 % The source and sink mode ('sourcesink') calculates the change in biomass
-% of each state variable over a single time step of the model.  This mode
-% receives as input the biomass of all biological state variables, the mean
-% solar radiation, and the temperature profile at the current time step, as
-% well as the time and depth grid variables.  If you require additional
-% variables to calculate changes in biomass, these variables should be
-% included in the Biovars structure created during initialization.
+% of each state variable over a single time step of the model due to any
+% non-mixing-related process.  This is where the primary calculations will
+% go for most models.
 %
 % The vertical movement ('vertmove') mode calculates speed of vertical
 % movement for each state variable.  This can be used to introduce sinking
@@ -71,7 +68,7 @@ function varargout = biomodule(action, varargin)
 %   oldbio:     ndepth x nbsv array, profiles of biological state variables
 %               at current time step
 %
-%   PhysParams: 1 x 1 structure holding water-column physical properties
+%   PhysParams: 1 x 1 structure holding water column physical properties
 %               relevant to biological calculations:
 %
 %               par:    photosynthetically active radiation (W m^-2)
@@ -115,7 +112,7 @@ function varargout = biomodule(action, varargin)
 %   wsink:      ndepth x nbsv array, velocity of vertical movement, where
 %               positive values indicate movement towards the surface (m/s)
 
-% Copyright 2008 Kelly Kearney
+% Copyright 2008-2015 Kelly Kearney
 
 nin(1) = nargin(@init) + 1;
 nin(2) = nargin(@sourcesink) + 1;
