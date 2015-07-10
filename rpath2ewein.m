@@ -93,13 +93,13 @@ A.dc(isnan(A.dc)) = 0;
 % cname(~isemp) = tmp;
 
 detname = Base.Group(isdet);
-[tf, detloc] = ismember(detname, bcol);
+[~, detloc] = ismember(detname, bcol);
 A.df = table2array(Base(isgroup,detloc));
 
 % Fisheries
 
 A.fleet = Base.Group(isgear);
-[tf, fleetloc] = ismember(A.fleet, bcol);
+[~, fleetloc] = ismember(A.fleet, bcol);
 [tf, discloc] = ismember(cellfun(@(x) ['disc_' x], A.fleet, 'uni', 0), bcol);
 if ~any(tf)
     [tf, discloc] = ismember(cellfun(@(x) [x '_disc'], A.fleet, 'uni', 0), bcol);
