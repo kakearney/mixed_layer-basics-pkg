@@ -37,7 +37,9 @@ function varargout = cobalt_fweb(action, varargin)
 %
 %   bio_input:  Initial conditions for biological data, array has number
 %               of colums equal to the number of state varials in the
-%               biological module + 1, where the first column is depth
+%               biological module + 1, where the first column is depth (m,
+%               negative down) and the rest are concentration profiles
+%               (mmoles N m-3)
 %
 % Copyright 2015 Charles Stock
 
@@ -77,7 +79,7 @@ end
         
 %**************************************************************************
 
-function [bio, ismixed, bottomval, params, names, diag, diagnames] = init(In, Grd)
+function [bio, ismixed, bottomval, Biovars, names, diagnames] = init(In, Grd)
 
 % 12 State variables, See Fig. 1 of Stock et al. 2014 but omit diazotrophs
 bio(:,1) = interp1(In.bio_input(:,1), In.bio_input(:,2), Grd.z);
@@ -243,6 +245,8 @@ params.gamma_det = -params.wsnk/188;        % sec-1
 params.gamma_srdon = 1.0/(18*365*sperd);    % sec-1
 params.gamma_sldon = 1.0/(90*sperd);        % sec-1
 params.gamma_nitrif = 1.0/(30*sperd);       % sec-1
+
+Biovars = params;
 
 %
 % Initialize diagnostic variables, whatever is added here must be
