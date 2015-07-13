@@ -12,16 +12,25 @@ function varargout = mixed_layer(varargin)
 % without loss of stability.
 %
 % The supporting functions for this model reside in the private directory.
-% In addition, the model relies on a few 3rd-party toolboxes:
+% Biology-related functions are store in the biomodules and biomodules_subs
+% directories; both should be added to your path.  
+%
+% In addition, the model relies on a few 3rd-party toolboxes, which also
+% need to be added to your path:
 %
 %   Rich Signell's RPSstuff toolbox (wstress.m) 
 %   http://woodshole.er.usgs.gov/operations/sea-mat/RPSstuff-html/index.html 
+%   (Because this is a large toolbox and I'm only using one function from
+%   it, the most recent version of mixed_layer includes a copy of wstress.m
+%   in the private directory, so you no longer need to add this toolbox).
 %   
 %   Phil Morgan's seawater toolbox (sw_dens0.m and sw_smow.m)
 %   http://www.marine.csiro.au/datacentre/processing.htm.  
 %
-%   mexnc and snctools (pre-Matlab R2009a only)
-%   http://mexcdf.sourceforge.net/  
+%   mergestruct.m: a small utility to combine structure arrays, which I
+%   renamed from its original catstruct due to filename clashes with an
+%   unrelated utility
+%   http://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct
 %
 % The mixed_layer model is set up to allow interchangeable biological
 % modules to be run within it.  Please see biomodule.m (in the biomodules
@@ -687,7 +696,7 @@ for it=tidx
         PhysParams = Ts;
         PhysParams.par = Ht.Qi.*In.prad1;
         PhysParams.par24 = Ht.meanQi(it).*In.prad1;
-        PhysParams.krad1 = In.krad1;
+        PhysParams.kpar = In.krad1;
         
         GrdParams = struct('z', Grd.z, 'dz', In.dz, 't', Grd.time(it), 'dt', In.dt);
                 
