@@ -1,0 +1,719 @@
+
+********************
+
+%NEMURO NEMURO biological module
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    nemuro('init', In, Grd);
+% [newbio, diag] = ...
+%    nemuro('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    nemuro('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module runs a version of the NEMURO model, based on the NEMURO
+% Version 1 code available from PICES.  It includes 11 biological state
+% variables (2 phytoplankton, 3 zooplankton, and N- and Si-cycles).
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               bioinit:    nz x 11 array, initial concentrations of
+%                           state variables (mol/l), where columns are as
+%                           follows:
+%                           1:  TPS, Small Phytoplankton
+%                           2:  TPL, Large Phytoplankton
+%                           3:  TZS, Small Zooplankton
+%                           4:  TZL, Large Zooplankton
+%                           5:  TZP, Pradatory Zooplankton
+%                           6:  TNO3, Nitrate
+%                           7:  TNH4, Ammmonium
+%                           8:  TPON, Particulate Organic Nitrogen
+%                           9:  TDON, dissolved Organic Nitrogen
+%                           10: TSiOH4, Silicate
+%                           11: TOpal, Particulate Opal
+%
+%               bioinitz:   nz x 1 aaray, depths corresponding to rows of
+%                           bioinit
+%
+%               *nemparam*: scalar(s), any/all of the NEMURO parameters. 
+%                           See nemuroinputparser.m for a full list of
+%                           these parameters and their default values. 
+%                           Any parameter not included explicitly as an
+%                           input will be assigned the default value
+%                           according to the 'NEMURO Version 1.f90' set
+%                           of parameters.
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%WCENEMURO Water column ecosystem with NEMURO biological module
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    wcenemuro('init', In, Grd);
+% [newbio, diag] = ...
+%    wcenemuro('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    wcenemuro('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module runs a full end-to-end ecosystem model.  The lower trophic
+% levels (nutrient cycling, primary production, and lowest-level grazers)
+% are based on the NEMURO model, while upper trophic level interactions
+% are based on the Ecopath model,  The biological state variables include
+% both planktonic and nektonic functional groups; planktonic groups are
+% confined to a specific layer of the water column model, while nektonic
+% groups can freely move (and feed) throughout the water column (for
+% computational purposes this also includes non-water-dwelling predators
+% like birds).
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               Ewein :     Ewe input structure (see
+%                           ecopathlite.m).References to ngroup below
+%                           refers to the number of functional groups in
+%                           this model.
+%
+%               nekidx:     vector of indices corresponding to the groups
+%                           in the Ewe model that will be nektonic in the
+%                           water column model (i.e. can feed on the
+%                           entire water column).
+%
+%               weightfun:  function handle to function of the format w =
+%                           f(z) describing the distribution of profile
+%                           shape of plankton concentration at time 0. 
+%                           The values will be normalized to distribute
+%                           the steady-state biomass throughout the water
+%                           column appropriately. z represents depth in
+%                           meters (positive down)
+%
+%               switching:  ngroup x 1, switching parameter for each
+%                           predator. 0 = no switching, < 1 = switches
+%                           only when prey is very rare, > 1 switches
+%                           quickly (no units, 0-2)
+%
+%               bioinit:    nbz x 11 array, initial biomass values for
+%                           all NEMURO-derived variables, i.e. PS, PL,
+%                           ZS, ZL, ZP, NO3, NH4, PON, DON, SiOH4, and
+%                           Opal. If NaNs are found rather than a value,
+%                           then the default initial value from the
+%                           original NEMURO fortran code is used
+%                           instead.(mol/l)
+%
+%               bioinitz:   nbz x 1 array, vector of depth value
+%                           corresponding to the rows of bioinit (m)
+%
+%               nemidx:     1 x 11 vector, indices of Ewein groups that
+%                           correspond to each NEMURO-derived variable. 
+%                           A NaN indicates that there is no functional
+%                           group corresponding to this variable.
+%
+%               diagnostic: n x 1 cell array of strings, where each
+%                           string is a regular expression.  Diagnostic
+%                           fields matching any of these regular
+%                           expressions will be included in the output
+%                           file.  Diagnostic fields are of the format
+%                           axxyy, where a is one of the strings dbdt,
+%                           primprod, respiration, decomp, nitrify, pred,
+%                           egestion, excretion, or mortality, ad xx and
+%                           yy are two-digit indices of the source and
+%                           sink functional group, respectively.
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%NP Nutrient-phytoplankton biological module
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    np('init', In, Grd);
+% [newbio, diag] = ...
+%    np('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    np('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module adds a simple nutrient-phytoplankton model to the
+% mixed_layer model.  The model is based on the NP model described in
+% Sarmiento and Gruber (2008) Chapter 4, where
+% dP/dt = P * (Vmax * N/(Kn + N) - lambdap)
+% dN/dt = P * (-Vmax * N/(Kn + N) + mup * lambdap)
+% The maximum growth rate Vmax is determined by temperature and light
+% limitation, following Eppley (1972) and Platt and Jasby (1976),
+% respectively.  The half-saturation constant (Kn), loss rate (lambdap),
+% and fraction of remineralization (mup) are provided by the user.
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               n:      n x 2 depth profile of initial nutrients, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       nutrients (mmol N m^-3)
+%
+%               p:      n x 2 depth profile of phytoplankton, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       phytoplankton (mmol N m^-3)
+%
+%               kn:     half-saturation for nutrient uptake by
+%                       phytoplankton (mmol N m^-3)
+%
+%               loss:   loss rate for phytoplankton (s^-1)
+%
+%               remin:  fraction of phytoplankton loss that is
+%                       remineralized
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%NPZ Nutrient-phytoplankton-zooplankton biological module
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    npz('init', In, Grd);
+% [newbio, diag] = ...
+%    npz('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    npz('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module adds a simple nutrient-phytoplankton-zooplankton model to
+% the mixed_layer model.  The model is based on the NPZ model described
+% in Sarmiento and Gruber (2008) Chapter 4, where
+% dZ/dt = Z * (gammaz * g * P/(Kp + P) - lambdaz)
+% dP/dt = P * (Vmax * N/(Kn + N) - lambdap - g*Z/(Kp + P))
+% dN/dt = P * (-Vmax * N/(Kn + N) + mup * lambdap) +
+% Z * muz * ((1 - gammaz) * g * P/(Kp + P) + lambdaz)
+% The maximum growth rate Vmax is determined by temperature and light
+% limitation, following Eppley (1972) and Platt and Jasby (1976),
+% respectively.  The half-saturation constants (Kn, Kp), loss rates
+% (lambdap, lambdaz), and fractions of remineralization (mup, muz) are
+% provided by the user.
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               n:      n x 2 depth profile of initial nutrients, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       nutrients (mmol N m^-3)
+%
+%               p:      n x 2 depth profile of phytoplankton, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       phytoplankton (mmol N m^-3)
+%
+%               z:      n x 2 depth profile of zooplankton, where column
+%                       1 gives the depth values (negative down) and
+%                       column 2 holds the concentrations of zooplankton
+%                       (mmol N m^-3)
+%
+%               kn:     half-saturation for nutrient uptake by
+%                       phytoplankton (mmol N m^-3)
+%
+%               kp:     half-saturation for phytoplankton uptake by
+%                       zooplankton (mmol N m^-3)
+%
+%               lambdap:loss rate for phytoplankton (s^-1)
+%
+%               lambdaz:loss rate for zooplankton (s^-1)
+%
+%               mup:    fraction of phytoplankton loss that is
+%                       remineralized
+%
+%               muz:    fraction of zooplankton loss that is
+%                       remineralized
+%
+%               g:      maximum zooplankton growth rate (s^-1)
+%
+%               gammaz: zooplankton assimilation efficiency (0-1)
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%NPZD Nutrient-phytoplankton-zooplankton-detritus biological module
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    npzd('init', In, Grd);
+% [newbio, diag] = ...
+%    npzd('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    npzd('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module adds a nutrient-phytoplankton-zooplankton-detritus model. 
+% The dynamics for phytoplankton and zooplankton growth are the same as
+% the NPZ model.  Egestion and mortality go to a detritus pool, which is
+% remineralized at a constant rate to the nutrient pool.  Excretion goes
+% directly to the nutrient pool.
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               n:      n x 2 depth profile of initial nutrients, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       nutrients (mmol N m^-3)
+%
+%               p:      n x 2 depth profile of phytoplankton, where
+%                       column 1 gives the depth values (negative down)
+%                       and column 2 holds the concentrations of
+%                       phytoplankton (mmol N m^-3)
+%
+%               z:      n x 2 depth profile of zooplankton, where column
+%                       1 gives the depth values (negative down) and
+%                       column 2 holds the concentrations of zooplankton
+%                       (mmol N m^-3)
+%
+%               d:      n x 2 depth profile of detritus, where column 1
+%                       gives the depth values (negative down) and column
+%                       2 holds the concentrations of detritus (mmol N
+%                       m^-3)
+%
+%               kn:     half-saturation for nutrient uptake by
+%                       phytoplankton (mmol N m^-3)
+%
+%               kp:     half-saturation for phytoplankton uptake by
+%                       zooplankton (mmol N m^-3)
+%
+%               lambdap:loss rate for phytoplankton (s^-1)
+%
+%               lambdaz:loss rate for zooplankton (s^-1)
+%
+%               g:      maximum zooplankton growth rate (s^-1)
+%
+%               gammaz: zooplankton assimilation efficiency (0-1)
+%
+%               dsink:  detritus sinking velocity, negative (m/s)
+%
+%               kremin: remineralization rate constant (s^-1) 
+%
+%               egestz: fraction of zooplankton ingestion that is egested
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%TRACER Generic tracer
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    tracer('init', In, Grd);
+% [newbio, diag] = ...
+%    tracer('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    tracer('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module adds a simple tracer variable to the mixed_layer model.
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               tracer: n x 2 depth profile of tracer, where column 1
+%                       gives the depth values (negative down) and column
+%                       2 holds the initial concentrations of a generic
+%                       tracer (mmol m^-3)
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
+
+********************
+
+%TRACERFORCED Generic tracer with deep-water concentration held constant
+%
+% [bioinit, ismixed, bottomval, Biovars, names] = ...
+%    tracerforced('init', In, Grd);
+% [newbio, diag] = ...
+%    tracerforced('sourcesink', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+% wsink = ...
+%    tracerforced('vertmove', oldbio, meanqi, temp, z, dz, Biovars, t, dt);
+%
+% This module adds a single tracer variable to the mixed_layer model. 
+% The tracer has no sources or sinks, but is forced during mixing so that
+% the bottom grid cell maintains the same tracer concentration as was
+% supplied in the initial profile.
+%
+% Input variables for 'init' mode:
+%
+%   In:         1 x 1 structure holding user-supplied info.  
+%
+%               tracer: n x 2 depth profile of tracer, where column 1
+%                       gives the depth values (negative down) and column
+%                       2 holds the initial concentrations of a generic
+%                       tracer (mmol m^-3)
+%
+%   Grd:        1 x 1 structure, see mixed_layer code for fields
+%
+% Output variables for 'init' mode:
+%
+%   bioinit:    ndepth x nbsv array, initial depth profiles for all
+%               biological state variables
+%
+%   ismixed:    1 x nbsv logical array, indicates whether each biological
+%               state variable undergoes physical mixing.
+%
+%   bottomval:  1 x nbsv array, value used to force bottom layer during
+%               mixing.  NaN indicates no forcing.
+%
+%   Biovars:    1 x 1 structure holding additional parameters
+%
+%   names:      1 x nbsv cell array of strings, names for each state
+%               variable,  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+%   diagnames:  1 x ndiag cell array of strings, names for each diagnostic
+%               variable.  Names must begin with a letter and contain only
+%               letters, numbers, and underscores.
+%
+% Input variables for 'sourcesink' and 'vertmove' mode:
+%
+%   oldbio:     ndepth x nbsv array, profiles of biological state variables
+%               at current time step
+%
+%   meanqi:     mean incoming solar radiation (W m^-2)
+%
+%   temp:       ndepth x 1 array, temperature profile (deg C)
+%
+%   z:          ndepth x 1 array, depth grid for model (m)
+%
+%   dz:         depth grid cell size (m)
+%
+%   t:          current time (s)
+%
+%   dt:         time step (s)
+%
+% Output variables for 'sourcesink' mode:
+%
+%   newbio:     ndepth x nbsv array, profiles of biological state variables
+%               after stepping forward by one time step
+%
+%   diag:       ndepth x ndiag array, values of each diagnostic variable at
+%               each depth
+%
+% Output variables for 'vertmove' mode:
+%
+%   wsink:      ndepth x nbsv array, velocity of vertical movement, where
+%               positive values indicate movement towards the surface (m/s)
+
+% Copyright 2008 Kelly Kearney
