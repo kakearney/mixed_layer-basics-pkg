@@ -1,0 +1,934 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Examples for the mixed_layer model</title><meta name="generator" content="MATLAB 8.6"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-14"><meta name="DC.source" content="mixedlayer_examples.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Examples for the mixed_layer model</h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Setting up your path</a></li><li><a href="#2">Running physics-only simulations</a></li><li><a href="#6">Adding biology</a></li><li><a href="#12">Ensemble simulations</a></li></ul></div><h2>Setting up your path<a name="1"></a></h2><p>The mixed_layer code is spread over several folders (mostly because that makes it easier to maintain on my end... sorry about that).  To get the basics running, you need to add a few folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/mixed_layer'</span>);
+addpath(<span class="string">'mixed_layer-pkg/mixed_layer/biomodules'</span>);
+addpath(<span class="string">'mixed_layer-pkg/mixed_layer/biomodules_subs'</span>);
+addpath(<span class="string">'mixed_layer-pkg/seawater_ver3_2'</span>);
+addpath(<span class="string">'mixed_layer-pkg/mergestruct'</span>);
+</pre><p>(Alter the paths as necessary to wherever you place these folders).</p><p>If you only plan to run the <tt>cobalt_fweb</tt> module, or if you're adding your own biology module, then that's all you need.  To play with the <tt>np</tt> or <tt>npz</tt> modules, add three more:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/odefixed'</span>)
+addpath(<span class="string">'mixed_layer-pkg/odewrap'</span>)
+addpath(<span class="string">'mixed_layer-pkg/photosynthesis'</span>)
+</pre><p>Most users (i.e. probably everyone but me) can ignore the rest of the folders, which are related to the wce (water column ecosystem) and the nemurokak (which is the lower-trophics-only version of wce) modules.  The parameter setup for these modules can get very complicated, enough so that I have entire toolboxes worth of functions dedicated to the task for just my one region of interest.  I would really appreciate if you would email me if you intend to start using these options, so we can discuss potential collaborations (and I can give more specific suggestions on how to use this portion of the code).  That said, if you really want to give it a try, add the rest of the folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/ConsoleProgressBar'</span>)
+addpath(<span class="string">'mixed_layer-pkg/cprintf'</span>)
+addpath(<span class="string">'mixed_layer-pkg/gridxy'</span>)
+addpath(<span class="string">'mixed_layer-pkg/plots'</span>)
+addpath(<span class="string">'mixed_layer-pkg/cellstr2'</span>)
+addpath(<span class="string">'mixed_layer-pkg/dirfull'</span>)
+addpath(<span class="string">'mixed_layer-pkg/ecopathensemble'</span>)
+addpath(<span class="string">'mixed_layer-pkg/ecopathlite'</span>)
+addpath(<span class="string">'mixed_layer-pkg/parsepv'</span>)
+addpath(<span class="string">'mixed_layer-pkg/regexpfound'</span>)
+</pre><h2>Running physics-only simulations<a name="2"></a></h2><p>The simplest way to run the <tt>mixed_layer</tt> model is to do so without any of the biological modules turned on.  The code comes with some default surface forcing datasets (1976 data for the Scotian Shelf), which can be used for some quick tests.  To run with all default variables, simply specify an output folder name.</p><pre class="codeinput">mixed_layer(<span class="string">'default'</span>);
+</pre><pre class="codeoutput">
+--------------------
+1D Mixed Layer Model
+--------------------
+
+default.nc: 1
+
+Initializing model...
+  Missing heat data: 01/01/1976 00:00-01/01/1976 01:00
+  Missing wind data: 12/31/1976 23:00-01/01/1977 00:00
+Warning: Specified outputfile/iens combo already exists; attempting to overwrite
+file 
+Running simulation...
+  12/31/1976
+
+Mixed layer model completed successfully: 6.761060 s
+</pre><p>You might notice the warning messages under the Initializing step; they're letting us know that our forcing dataset doesn't quite span the whole simulation timeperiod, so it had to be extrapolated.  For tiny gaps like this, extrapolation is fine, but if you see gaps of more than a few hours, your input probably needs to be adjusted.</p><p>When run in single-simulation mode like this, the model creates two output files: one that holds the dimension variables (dimensions.nc), and one for everything else (sim0001.nc).  To read in data in the following examples, I use a little wrapper function called <tt>ncreads.m</tt>; you can find that <a href="https://github.com/kakearney/ncreads-pkg">here</a>.</p><pre class="codeinput"><span class="keyword">if</span> isempty(which(<span class="string">'ncreads'</span>))
+    error(<span class="string">'To run this script as is, you need to download ncreads: https://github.com/kakearney/ncreads-pkg'</span>);
+<span class="keyword">end</span>
+
+Dim1  = ncreads(fullfile(<span class="string">'default'</span>,<span class="string">'dimensions.nc'</span>));
+Data1 = ncreads(fullfile(<span class="string">'default'</span>,<span class="string">'sim0001.nc'</span>), <span class="string">'temp'</span>, <span class="string">'sal'</span>);
+
+figure;
+ax(1) = subplot(2,1,1);
+pcolor(Dim1.middate, Dim1.depth, Data1.temp);
+datetick(<span class="string">'x'</span>, <span class="string">'mmm'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Temperature'</span>);
+ax(2) = subplot(2,1,2);
+pcolor(Dim1.middate, Dim1.depth, Data1.sal);
+datetick(<span class="string">'x'</span>, <span class="string">'mmm'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Salinity'</span>);
+set(ax, <span class="string">'layer'</span>, <span class="string">'top'</span>);
+set(ax(2), <span class="string">'clim'</span>, [30 35]);
+</pre><img vspace="5" hspace="5" src="mixedlayer_examples_01.png" alt=""> <p>In practice, you'll want to use the appropriate surface forcings for your location and time period of interest.  Also, in almost all cases, you'll want to supply a salinity relaxation dataset; otherwise the water column salinity slowly homogenizes due to lack of freshwater inputs. This folder includes some example data for a more realistic run on the Eastern Scotian Shelf.</p><pre class="codeinput">load <span class="string">heat_input_ess_1984_2007.mat</span>;
+load <span class="string">wind_input_ess_1984_2008.mat</span>;
+load <span class="string">ts_init_ess.mat</span>;
+load <span class="string">salt_clim_ess_1984_2008_smoothed</span>;
+
+mixed_layer(<span class="string">'ess'</span>, <span class="keyword">...</span>
+    <span class="string">'dt'</span>, 1800, <span class="keyword">...</span>
+    <span class="string">'dz'</span>, 5, <span class="keyword">...</span>
+    <span class="string">'zbot'</span>, -150, <span class="keyword">...</span>
+    <span class="string">'syear'</span>, 1984, <span class="keyword">...</span>
+    <span class="string">'eyear'</span>, 1985, <span class="keyword">...</span>
+    <span class="string">'Lat'</span>, 45, <span class="keyword">...</span>
+    <span class="string">'ts_input'</span>, ts_init_ess, <span class="keyword">...</span>
+    <span class="string">'wind_input'</span>, wind_input_ess_1984_2008, <span class="keyword">...</span>
+    <span class="string">'heat_input'</span>, heat_input_ess_1984_2007, <span class="keyword">...</span>
+    <span class="string">'srelax'</span>, salt_clim_ess_1984_2008_smoothed, <span class="keyword">...</span>
+    <span class="string">'srelaxtime'</span>, 259200);
+</pre><pre class="codeoutput">
+--------------------
+1D Mixed Layer Model
+--------------------
+
+ess.nc: 1
+
+Initializing model...
+Running simulation...
+  12/31/1985
+
+Mixed layer model completed successfully: 131.621893 s
+</pre><pre class="codeinput">Dim2  = ncreads(fullfile(<span class="string">'ess'</span>,<span class="string">'dimensions.nc'</span>));
+Data2 = ncreads(fullfile(<span class="string">'ess'</span>,<span class="string">'sim0001.nc'</span>), <span class="string">'temp'</span>, <span class="string">'sal'</span>);
+
+figure;
+ax(1) = subplot(2,1,1);
+pcolor(Dim2.middate, Dim2.depth, Data2.temp);
+datetick(<span class="string">'x'</span>, <span class="string">'mmmyy'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Temperature'</span>);
+ax(2) = subplot(2,1,2);
+pcolor(Dim2.middate, Dim2.depth, Data2.sal);
+datetick(<span class="string">'x'</span>, <span class="string">'mmmyy'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Salinity'</span>);
+set(ax, <span class="string">'layer'</span>, <span class="string">'top'</span>);
+</pre><img vspace="5" hspace="5" src="mixedlayer_examples_02.png" alt=""> <h2>Adding biology<a name="6"></a></h2><p>In order to add biology, we need to turn on one of the biological modules via the <tt>biofun</tt> input, and supply any additional input parameters needed by the module.  See the function help for each module to figure out what these inputs are.</p><p>Charlie's cobalt_fweb module is one of the easier ones to get started with, since most of its parameters are hard-coded.  It requires only one additional input, holding the initial concentration profiles for all the state variables; an example dataset is included in the examples folder.</p><pre class="codeinput">load <span class="string">cobalt_init_ess.mat</span>;
+
+mixed_layer(<span class="string">'ess_cobalt'</span>, <span class="keyword">...</span>
+    <span class="string">'dt'</span>, 1800, <span class="keyword">...</span>
+    <span class="string">'dz'</span>, 5, <span class="keyword">...</span>
+    <span class="string">'zbot'</span>, -150, <span class="keyword">...</span>
+    <span class="string">'syear'</span>, 1984, <span class="keyword">...</span>
+    <span class="string">'eyear'</span>, 1985, <span class="keyword">...</span>
+    <span class="string">'Lat'</span>, 45, <span class="keyword">...</span>
+    <span class="string">'ts_input'</span>, ts_init_ess, <span class="keyword">...</span>
+    <span class="string">'wind_input'</span>, wind_input_ess_1984_2008, <span class="keyword">...</span>
+    <span class="string">'heat_input'</span>, heat_input_ess_1984_2007, <span class="keyword">...</span>
+    <span class="string">'srelax'</span>, salt_clim_ess_1984_2008_smoothed, <span class="keyword">...</span>
+    <span class="string">'srelaxtime'</span>, 259200, <span class="keyword">...</span>
+    <span class="string">'biofun'</span>,@cobalt_fweb, <span class="keyword">...</span>
+    <span class="string">'bio_input'</span>,cobalt_init_ess);
+</pre><pre class="codeoutput">
+--------------------
+1D Mixed Layer Model
+--------------------
+
+ess_cobalt.nc: 1
+
+Initializing model...
+Running simulation...
+  12/31/1985
+
+Mixed layer model completed successfully: 253.511300 s
+</pre><pre class="codeinput">Dim3  = ncreads(fullfile(<span class="string">'ess_cobalt'</span>,<span class="string">'dimensions.nc'</span>));
+vars = {<span class="string">'sp'</span>, <span class="string">'lp'</span>, <span class="string">'sz'</span>,<span class="string">'mz'</span>,<span class="string">'lz'</span>};
+nv = length(vars);
+Data3 = ncreads(fullfile(<span class="string">'ess_cobalt'</span>,<span class="string">'sim0001.nc'</span>), vars{:});
+
+vpos = linspace(0.05, 0.95, nv+1);
+
+figure;
+<span class="keyword">for</span> ii = 1:nv
+    ax(ii) = axes(<span class="string">'position'</span>, [0.1 vpos(ii), 0.8 (0.9/nv)*0.8]);
+    pcolor(Dim3.middate, Dim3.depth, Data3.(vars{ii}));
+    shading <span class="string">flat</span>;
+    title(vars{ii});
+    colorbar;
+<span class="keyword">end</span>
+set(ax(2:end), <span class="string">'xticklabel'</span>, <span class="string">''</span>);
+datetick(ax(1), <span class="string">'x'</span>, <span class="string">'mmmyy'</span>, <span class="string">'keeplimits'</span>);
+set(ax, <span class="string">'layer'</span>, <span class="string">'top'</span>);
+</pre><img vspace="5" hspace="5" src="mixedlayer_examples_03.png" alt=""> <p>In the above examples, we've been reusing a lot of the same inputs.  To make it easier to do this without constantly retyping, we can store the input variables in a sructure array, and pass that as input.</p><pre class="codeinput">In.dt = 1800;
+In.dz = 5;
+In.zbot = -150;
+In.syear = 1984;
+In.eyear = 1985;
+In.Lat = 45;
+In.ts_input = ts_init_ess;
+In.wind_input = wind_input_ess_1984_2008;
+In.heat_input = heat_input_ess_1984_2007;
+In.srelax = salt_clim_ess_1984_2008_smoothed;
+In.srelaxtime = 259200;
+</pre><p>You can combine structure and parameter/value input.  This example reuses all the physical parameters listed above, but then runs the NP toy model instead.  Also, notice that if a parameter is repeated (as in the <tt>eyear</tt> parameter here, which is set both in the structure array and as a parameter/value pair), the last listed value is used.</p><pre class="codeinput">mixed_layer(<span class="string">'ess_np'</span>, In, <span class="string">'n'</span>, cobalt_init_ess(:,[1 13]), <span class="keyword">...</span>
+                          <span class="string">'p'</span>, cobalt_init_ess(:,[1 3]), <span class="keyword">...</span>
+                          <span class="string">'kn'</span>, 0.1, <span class="keyword">...</span>
+                          <span class="string">'loss'</span>, 0.05/86400, <span class="keyword">...</span>
+                          <span class="string">'remin'</span>, 0.5, <span class="keyword">...</span>
+                          <span class="string">'eyear'</span>, 1984, <span class="keyword">...</span>
+                          <span class="string">'biofun'</span>, @np);
+</pre><pre class="codeoutput">
+--------------------
+1D Mixed Layer Model
+--------------------
+
+ess_np.nc: 1
+
+Initializing model...
+Running simulation...
+  12/31/1984
+
+Mixed layer model completed successfully: 103.024126 s
+</pre><pre class="codeinput">Dim4  = ncreads(fullfile(<span class="string">'ess_np'</span>,<span class="string">'dimensions.nc'</span>));
+Data4 = ncreads(fullfile(<span class="string">'ess_np'</span>,<span class="string">'sim0001.nc'</span>), <span class="string">'N'</span>,<span class="string">'P'</span>);
+
+figure;
+clear <span class="string">ax</span>;
+ax(1) = subplot(2,1,1);
+pcolor(Dim4.middate, Dim4.depth, Data4.N);
+datetick(<span class="string">'x'</span>, <span class="string">'mmmyy'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Nutrient'</span>);
+ax(2) = subplot(2,1,2);
+pcolor(Dim4.middate, Dim4.depth, Data4.P);
+datetick(<span class="string">'x'</span>, <span class="string">'mmmyy'</span>);
+shading <span class="string">flat</span>;
+colorbar;
+title(<span class="string">'Phytoplankton'</span>);
+set(ax, <span class="string">'layer'</span>, <span class="string">'top'</span>);
+</pre><img vspace="5" hspace="5" src="mixedlayer_examples_04.png" alt=""> <p>In case you're wondering about the crazy combo of ODE solvers used in the NP and NPZ modules, that's mostly the result of some early experimentation when I was preparing to build a more complicated model... and that's also why it runs a bit slowly for such a simple model.</p><h2>Ensemble simulations<a name="12"></a></h2><p>The mixed_layer model comes with the ability to run ensemble simulations, where the same basic model grid setup is used but the forcings or parameters are varied between simulations.  The <tt>runmixedlayer.m</tt> function can be used to make file management simpler in these cases.  For example, let's run a sensitivity study where we vary the half-saturation constant in the above example:</p><pre class="codeinput">nens = 5;
+kn = linspace(0.05, 3.5, nens);
+
+Ens = In;
+Ens.n = cobalt_init_ess(:,[1 13]);
+Ens.p = cobalt_init_ess(:,[1 3]);
+Ens.loss = 0.05/86400;
+Ens.remin = 0.5;
+Ens.eyear = 1984;
+Ens.biofun = @np;
+
+Ens = repmat(Ens, nens, 1);
+<span class="keyword">for</span> ii = 1:nens
+    Ens(ii).kn = kn(ii);
+<span class="keyword">end</span>
+
+runmixedlayer(Ens, <span class="string">'name'</span>, <span class="string">'ess_npsensitivity'</span>, <span class="string">'verbose'</span>, false);
+</pre><pre class="codeoutput">14-Jul-2015 11:28:33: ./ess_npsensitivity: 5
+14-Jul-2015 11:30:17: ./ess_npsensitivity: 4
+14-Jul-2015 11:32:00: ./ess_npsensitivity: 3
+14-Jul-2015 11:33:43: ./ess_npsensitivity: 2
+14-Jul-2015 11:35:26: ./ess_npsensitivity: 1
+</pre><p>The output folder now contains simXXXX.nc files for the 5 different variations.</p><pre class="codeinput">dir(<span class="string">'ess_npsensitivity'</span>)
+</pre><pre class="codeoutput">
+.              dimensions.nc  sim0002.nc     sim0004.nc     
+..             sim0001.nc     sim0003.nc     sim0005.nc     
+
+</pre><p>We could loop over all these files and read in the data.  But with larger ensembles and multiple variables, that can become a pain.  The postprocess option in runmixedlayer reformats the output data so that instead of one file per simulation with all the variables in it, you get one file per variable with all simulations.  The postprocessing options relies on the NCO utilities (<a href="http://nco.sourceforge.net/">http://nco.sourceforge.net/</a>), so you'll need to have those installed and accessible via Matlab to use this option.</p><pre class="codeinput">ncdisp(fullfile(<span class="string">'ess_npsensitivity'</span>, <span class="string">'sim0001.nc'</span>));
+</pre><pre class="codeoutput">Source:
+           /Users/kakearney/Documents/GitRepos/Distribution/readmeScripts/mixedlayer_examples/ess_npsensitivity/sim0001.nc
+Format:
+           netcdf4
+Dimensions:
+           depth      = 30
+           time       = 366   (UNLIMITED)
+           depth_edge = 31
+Variables:
+    temp    
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'temperature'
+                       unit       = 'deg C'
+    sal     
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'salinity'
+                       unit       = 'psu'
+    sig     
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'density'
+                       unit       = 'kg m^-3'
+    ucurrent
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'east-west current velocity'
+                       unit       = 'm s^-2'
+    vcurrent
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'north-south current velocity'
+                       unit       = 'm s^-2'
+    q2      
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'twice the turbulent kinetic energy'
+                       unit       = 'm^2 s^-2'
+    q2l     
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'turbulent kinetic energy * length scale'
+                       unit       = 'm^3 s^-2'
+    len     
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'turbulence length scale'
+                       unit       = 'm'
+    Kh      
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'tracer mixing coefficient'
+                       unit       = 'm^2 s^-1'
+    Km      
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'vertical kinematic viscosity'
+                       unit       = 'm^2 s^-1'
+    Kq      
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'turbulence mixing coefficient'
+                       unit       = 'm^2 s^-1'
+    boy     
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'Kh * boygr'
+                       unit       = 'm^2 s^-3'
+    diss_q2 
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'lc_q2 * q2'
+                       unit       = '?'
+    diss_q2l
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'lc_q2l * q2l'
+                       unit       = '?'
+    gh      
+           Size:       31x366
+           Dimensions: depth_edge,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'Richardson number'
+                       unit       = 'no units'
+    Qi      
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'incident heat flux'
+                       unit       = 'W m^-2'
+    Qs      
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'sensible heat flux'
+                       unit       = 'W m^-2'
+    Ql      
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'latent heat flux'
+                       unit       = 'W m^-2'
+    Qlw     
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'longwave heat flux'
+                       unit       = 'W m^-2'
+    Qsol    
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'incident heat flux (water column)'
+                       unit       = 'W m^-2'
+    Qsrf    
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'surface heat flux'
+                       unit       = 'W m^-2'
+    Qadv    
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'advective heat flux'
+                       unit       = 'W m^-2'
+    ustau   
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'east-west surface wind stress'
+                       unit       = 'N m^-2'
+    vstau   
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'north-south surface wind stress'
+                       unit       = 'N m^-2'
+    ubtau   
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'east-west bottom wind stress'
+                       unit       = 'N m^-2'
+    vbtau   
+           Size:       366x1
+           Dimensions: time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'north-south bottom wind stress'
+                       unit       = 'N m^-2'
+    N       
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'nutrient'
+                       unit       = 'mmol N m^-3'
+    P       
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'phytoplankton'
+                       unit       = 'mmol N m^-3'
+    ps      
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'photosynthesis'
+                       unit       = 'mmol N m^-3 s^-1'
+    ploss   
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'phyto mortality'
+                       unit       = 'mmol N m^-3 s^-1'
+    premin  
+           Size:       30x366
+           Dimensions: depth,time
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'remineralization'
+                       unit       = 'mmol N m^-3 s^-1'
+</pre><pre class="codeinput">runmixedlayer(Ens, <span class="string">'name'</span>, <span class="string">'ess_npsensitivity'</span>, <span class="string">'postprocess'</span>, true);
+
+dir(<span class="string">'ess_npsensitivity'</span>)
+</pre><pre class="codeoutput">Postprocessing ./ess_npsensitivity
+Concatenating ensembles
+ 100% [=================================================&gt;]  31 of  31: premin
+
+.              Qadv.nc        boy.nc         premin.nc      ubtau.nc       
+..             Qi.nc          dimensions.nc  ps.nc          ucurrent.nc    
+Kh.nc          Ql.nc          diss_q2.nc     q2.nc          ustau.nc       
+Km.nc          Qlw.nc         diss_q2l.nc    q2l.nc         vbtau.nc       
+Kq.nc          Qs.nc          gh.nc          sal.nc         vcurrent.nc    
+N.nc           Qsol.nc        len.nc         sig.nc         vstau.nc       
+P.nc           Qsrf.nc        ploss.nc       temp.nc        
+
+</pre><pre class="codeinput">ncdisp(fullfile(<span class="string">'ess_npsensitivity'</span>, <span class="string">'P.nc'</span>));
+</pre><pre class="codeoutput">Source:
+           /Users/kakearney/Documents/GitRepos/Distribution/readmeScripts/mixedlayer_examples/ess_npsensitivity/P.nc
+Format:
+           netcdf4
+Global Attributes:
+           history                  = 'Tue Jul 14 11:37:10 2015: ncecat -v P -u ensemble -n 5,4,1 ./ess_npsensitivity/sim0001.nc ./ess_npsensitivity/P.nc'
+           nco_openmp_thread_number = 1
+Dimensions:
+           ensemble = 5     (UNLIMITED)
+           time     = 366
+           depth    = 30
+Variables:
+    P
+           Size:       30x366x5
+           Dimensions: depth,time,ensemble
+           Datatype:   double
+           Attributes:
+                       _FillValue = -9999
+                       long_name  = 'phytoplankton'
+                       unit       = 'mmol N m^-3'
+</pre><p>Note that unlike mixed_layer itself, runmixedlayer never attempts to overwrite files.  If it finds a file already exists it skips to the next ensemble member, or to the postprocessing steps.  It also deals with errors differently; if one simulation crashes, the code catches the error and writes it to a log file, then moves on to the next step, rather than halting all simulations.</p><p>We can now inspect the effects of changing <img src="mixedlayer_examples_eq08431114012312464439.png" alt="$K_N$"> on our NP model:</p><pre class="codeinput">Dim5 = ncreads(fullfile(<span class="string">'ess_npsensitivity'</span>,<span class="string">'dimensions.nc'</span>));
+p = ncread(fullfile(<span class="string">'ess_npsensitivity'</span>, <span class="string">'P.nc'</span>), <span class="string">'P'</span>);
+
+vpos = linspace(0.05, 0.95, nens+1);
+
+figure;
+<span class="keyword">for</span> ii = 1:nens
+    ax(ii) = axes(<span class="string">'position'</span>, [0.1 vpos(ii), 0.8 (0.9/nens)*0.8]);
+    pcolor(Dim5.middate, Dim5.depth, p(:,:,ii));
+    shading <span class="string">flat</span>;
+    title(sprintf(<span class="string">'K_N = %.3f'</span>, kn(ii)));
+<span class="keyword">end</span>
+set(ax(2:end), <span class="string">'xticklabel'</span>, <span class="string">''</span>);
+datetick(ax(1), <span class="string">'x'</span>, <span class="string">'mmmyy'</span>, <span class="string">'keeplimits'</span>);
+set(ax, <span class="string">'layer'</span>, <span class="string">'top'</span>, <span class="string">'clim'</span>, [0 3.1], <span class="string">'fontsize'</span>, 8);
+cb = colorbar(<span class="string">'peer'</span>, ax(end), <span class="string">'location'</span>, <span class="string">'east'</span>);
+set(cb, <span class="string">'position'</span>, [0.93 0.05 0.03 0.9/nens]);
+</pre><img vspace="5" hspace="5" src="mixedlayer_examples_05.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Examples for the mixed_layer model
+
+%% Setting up your path
+% 
+% The mixed_layer code is spread over several folders (mostly because that
+% makes it easier to maintain on my end... sorry about that).  To get the
+% basics running, you need to add a few folders to your path:  
+% 
+%   addpath('mixed_layer-pkg/mixed_layer');
+%   addpath('mixed_layer-pkg/mixed_layer/biomodules');
+%   addpath('mixed_layer-pkg/mixed_layer/biomodules_subs');
+%   addpath('mixed_layer-pkg/seawater_ver3_2');
+%   addpath('mixed_layer-pkg/mergestruct');
+%
+% (Alter the paths as necessary to wherever you place these folders).
+%
+% If you only plan to run the |cobalt_fweb| module, or if you're adding
+% your own biology module, then that's all you need.  To play with the |np|
+% or |npz| modules, add three more:   
+%
+%   addpath('mixed_layer-pkg/odefixed')
+%   addpath('mixed_layer-pkg/odewrap')
+%   addpath('mixed_layer-pkg/photosynthesis')
+%
+% Most users (i.e. probably everyone but me) can ignore the rest of the
+% folders, which are related to the wce (water 
+% column ecosystem) and the nemurokak (which is the lower-trophics-only
+% version of wce) modules.  The parameter setup for these modules can get
+% very complicated, enough so that I have entire toolboxes worth of
+% functions dedicated to the task for just my one region of interest.  I
+% would really appreciate if you would email me if you intend to start
+% using these options, so we can discuss potential collaborations (and I
+% can give more specific suggestions on how to use this portion of the
+% code).  That said, if you really want to give it a try, add the rest of
+% the folders to your path:
+%
+%   addpath('mixed_layer-pkg/ConsoleProgressBar')
+%   addpath('mixed_layer-pkg/cprintf')
+%   addpath('mixed_layer-pkg/gridxy')
+%   addpath('mixed_layer-pkg/plots')
+%   addpath('mixed_layer-pkg/cellstr2')
+%   addpath('mixed_layer-pkg/dirfull')
+%   addpath('mixed_layer-pkg/ecopathensemble')
+%   addpath('mixed_layer-pkg/ecopathlite')
+%   addpath('mixed_layer-pkg/parsepv')
+%   addpath('mixed_layer-pkg/regexpfound')
+
+
+%% Running physics-only simulations
+%
+% The simplest way to run the |mixed_layer| model is to do so without any
+% of the biological modules turned on.  The code comes with some default
+% surface forcing datasets (1976 data for the Scotian Shelf), which can be
+% used for some quick tests.  To run with all default variables, simply
+% specify an output folder name.  
+
+mixed_layer('default');
+
+%%
+% You might notice the warning messages under the Initializing step;
+% they're letting us know that our forcing dataset doesn't quite span the
+% whole simulation timeperiod, so it had to be extrapolated.  For tiny gaps
+% like this, extrapolation is fine, but if you see gaps of more than a few
+% hours, your input probably needs to be adjusted.  
+%
+% When run in single-simulation mode like this, the model creates two
+% output files: one that holds the dimension variables (dimensions.nc), and
+% one for everything else (sim0001.nc).  To read in data in the following
+% examples, I use a little wrapper function called |ncreads.m|; you can
+% find that <https://github.com/kakearney/ncreads-pkg here>.
+
+if isempty(which('ncreads'))
+    error('To run this script as is, you need to download ncreads: https://github.com/kakearney/ncreads-pkg');
+end
+
+Dim1  = ncreads(fullfile('default','dimensions.nc'));
+Data1 = ncreads(fullfile('default','sim0001.nc'), 'temp', 'sal');
+
+figure;
+ax(1) = subplot(2,1,1);
+pcolor(Dim1.middate, Dim1.depth, Data1.temp);
+datetick('x', 'mmm');
+shading flat;
+colorbar;
+title('Temperature');
+ax(2) = subplot(2,1,2);
+pcolor(Dim1.middate, Dim1.depth, Data1.sal);
+datetick('x', 'mmm');
+shading flat;
+colorbar;
+title('Salinity');
+set(ax, 'layer', 'top');
+set(ax(2), 'clim', [30 35]);
+
+%%
+% In practice, you'll want to use the appropriate surface forcings for
+% your location and time period of interest.  Also, in almost all cases,
+% you'll want to supply a salinity relaxation dataset; otherwise the water
+% column salinity slowly homogenizes due to lack of freshwater inputs.
+% This folder includes some example data for a more realistic run on the
+% Eastern Scotian Shelf.
+
+load heat_input_ess_1984_2007.mat;
+load wind_input_ess_1984_2008.mat;
+load ts_init_ess.mat;
+load salt_clim_ess_1984_2008_smoothed;
+
+mixed_layer('ess', ...
+    'dt', 1800, ...
+    'dz', 5, ...
+    'zbot', -150, ...
+    'syear', 1984, ...
+    'eyear', 1985, ...
+    'Lat', 45, ...
+    'ts_input', ts_init_ess, ...
+    'wind_input', wind_input_ess_1984_2008, ...
+    'heat_input', heat_input_ess_1984_2007, ...
+    'srelax', salt_clim_ess_1984_2008_smoothed, ...
+    'srelaxtime', 259200);
+
+%%
+
+Dim2  = ncreads(fullfile('ess','dimensions.nc'));
+Data2 = ncreads(fullfile('ess','sim0001.nc'), 'temp', 'sal');
+
+figure;
+ax(1) = subplot(2,1,1);
+pcolor(Dim2.middate, Dim2.depth, Data2.temp);
+datetick('x', 'mmmyy');
+shading flat;
+colorbar;
+title('Temperature');
+ax(2) = subplot(2,1,2);
+pcolor(Dim2.middate, Dim2.depth, Data2.sal);
+datetick('x', 'mmmyy');
+shading flat;
+colorbar;
+title('Salinity');
+set(ax, 'layer', 'top');
+
+%% Adding biology
+%
+% In order to add biology, we need to turn on one of the biological modules
+% via the |biofun| input, and supply any additional input parameters needed
+% by the module.  See the function help for each module to figure out what
+% these inputs are.
+%
+% Charlie's cobalt_fweb module is one of the easier ones to get started
+% with, since most of its parameters are hard-coded.  It requires only one
+% additional input, holding the initial concentration profiles for all the
+% state variables; an example dataset is included in the examples folder.
+
+load cobalt_init_ess.mat;
+
+mixed_layer('ess_cobalt', ...
+    'dt', 1800, ...
+    'dz', 5, ...
+    'zbot', -150, ...
+    'syear', 1984, ...
+    'eyear', 1985, ...
+    'Lat', 45, ...
+    'ts_input', ts_init_ess, ...
+    'wind_input', wind_input_ess_1984_2008, ...
+    'heat_input', heat_input_ess_1984_2007, ...
+    'srelax', salt_clim_ess_1984_2008_smoothed, ...
+    'srelaxtime', 259200, ...
+    'biofun',@cobalt_fweb, ...
+    'bio_input',cobalt_init_ess);
+
+%%
+
+Dim3  = ncreads(fullfile('ess_cobalt','dimensions.nc'));
+vars = {'sp', 'lp', 'sz','mz','lz'};
+nv = length(vars);
+Data3 = ncreads(fullfile('ess_cobalt','sim0001.nc'), vars{:});
+
+vpos = linspace(0.05, 0.95, nv+1);
+
+figure;
+for ii = 1:nv
+    ax(ii) = axes('position', [0.1 vpos(ii), 0.8 (0.9/nv)*0.8]);
+    pcolor(Dim3.middate, Dim3.depth, Data3.(vars{ii}));
+    shading flat;
+    title(vars{ii});
+    colorbar;
+end
+set(ax(2:end), 'xticklabel', '');
+datetick(ax(1), 'x', 'mmmyy', 'keeplimits');
+set(ax, 'layer', 'top');
+
+%% 
+% In the above examples, we've been reusing a lot of the same inputs.  To
+% make it easier to do this without constantly retyping, we can store the
+% input variables in a sructure array, and pass that as input. 
+
+In.dt = 1800;
+In.dz = 5;
+In.zbot = -150;
+In.syear = 1984;
+In.eyear = 1985;
+In.Lat = 45;
+In.ts_input = ts_init_ess;
+In.wind_input = wind_input_ess_1984_2008;
+In.heat_input = heat_input_ess_1984_2007;
+In.srelax = salt_clim_ess_1984_2008_smoothed;
+In.srelaxtime = 259200;
+
+%%
+% You can combine structure and parameter/value input.  This example reuses
+% all the physical parameters listed above, but then runs the NP toy model
+% instead.  Also, notice that if a parameter is repeated (as in the |eyear|
+% parameter here, which is set both in the structure array and as a
+% parameter/value pair), the last listed value is used.
+
+mixed_layer('ess_np', In, 'n', cobalt_init_ess(:,[1 13]), ...
+                          'p', cobalt_init_ess(:,[1 3]), ...
+                          'kn', 0.1, ...
+                          'loss', 0.05/86400, ...
+                          'remin', 0.5, ...
+                          'eyear', 1984, ...
+                          'biofun', @np);
+
+%%
+Dim4  = ncreads(fullfile('ess_np','dimensions.nc'));
+Data4 = ncreads(fullfile('ess_np','sim0001.nc'), 'N','P');
+
+figure;
+clear ax;
+ax(1) = subplot(2,1,1);
+pcolor(Dim4.middate, Dim4.depth, Data4.N);
+datetick('x', 'mmmyy');
+shading flat;
+colorbar;
+title('Nutrient');
+ax(2) = subplot(2,1,2);
+pcolor(Dim4.middate, Dim4.depth, Data4.P);
+datetick('x', 'mmmyy');
+shading flat;
+colorbar;
+title('Phytoplankton');
+set(ax, 'layer', 'top');
+
+%%
+% In case you're wondering about the crazy combo of ODE solvers used in the
+% NP and NPZ modules, that's mostly the result of some early
+% experimentation when I was preparing to build a more complicated model...
+% and that's also why it runs a bit slowly for such a simple model.
+
+%% Ensemble simulations
+%
+% The mixed_layer model comes with the ability to run ensemble simulations,
+% where the same basic model grid setup is used but the forcings or
+% parameters are varied between simulations.  The |runmixedlayer.m|
+% function can be used to make file management simpler in these cases.  For
+% example, let's run a sensitivity study where we vary the half-saturation
+% constant in the above example:
+
+nens = 5;
+kn = linspace(0.05, 3.5, nens);
+
+Ens = In;
+Ens.n = cobalt_init_ess(:,[1 13]);
+Ens.p = cobalt_init_ess(:,[1 3]);
+Ens.loss = 0.05/86400;
+Ens.remin = 0.5;
+Ens.eyear = 1984;
+Ens.biofun = @np;
+
+Ens = repmat(Ens, nens, 1);
+for ii = 1:nens
+    Ens(ii).kn = kn(ii);
+end
+
+runmixedlayer(Ens, 'name', 'ess_npsensitivity', 'verbose', false);
+
+%%
+% The output folder now contains simXXXX.nc files for the 5 different
+% variations.
+
+dir('ess_npsensitivity')
+
+%%
+% We could loop over all these files and read in the data.  But with larger
+% ensembles and multiple variables, that can become a pain.  The
+% postprocess option in runmixedlayer reformats the output data so that
+% instead of one file per simulation with all the variables in it, you get
+% one file per variable with all simulations.  The postprocessing options
+% relies on the NCO utilities (http://nco.sourceforge.net/), so you'll need
+% to have those installed and accessible via Matlab to use this option.
+
+ncdisp(fullfile('ess_npsensitivity', 'sim0001.nc'));
+%%
+runmixedlayer(Ens, 'name', 'ess_npsensitivity', 'postprocess', true);
+
+dir('ess_npsensitivity')
+%%
+ncdisp(fullfile('ess_npsensitivity', 'P.nc'));
+
+%%
+% Note that unlike mixed_layer itself, runmixedlayer never attempts to
+% overwrite files.  If it finds a file already exists it skips to the next
+% ensemble member, or to the postprocessing steps.  It also deals with
+% errors differently; if one simulation crashes, the code catches the error
+% and writes it to a log file, then moves on to the next step, rather than
+% halting all simulations.
+%
+% We can now inspect the effects of changing $K_N$ on our NP model:
+
+Dim5 = ncreads(fullfile('ess_npsensitivity','dimensions.nc'));
+p = ncread(fullfile('ess_npsensitivity', 'P.nc'), 'P');
+
+vpos = linspace(0.05, 0.95, nens+1);
+
+figure;
+for ii = 1:nens
+    ax(ii) = axes('position', [0.1 vpos(ii), 0.8 (0.9/nens)*0.8]);
+    pcolor(Dim5.middate, Dim5.depth, p(:,:,ii));
+    shading flat;
+    title(sprintf('K_N = %.3f', kn(ii)));
+end
+set(ax(2:end), 'xticklabel', '');
+datetick(ax(1), 'x', 'mmmyy', 'keeplimits');
+set(ax, 'layer', 'top', 'clim', [0 3.1], 'fontsize', 8);
+cb = colorbar('peer', ax(end), 'location', 'east');
+set(cb, 'position', [0.93 0.05 0.03 0.9/nens]);
+
+
+##### SOURCE END #####
+--></body></html>
