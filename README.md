@@ -38,7 +38,7 @@ In addition to  my own code, the repository includes a few third-party toolboxes
 - [gridxy](http://www.mathworks.com/matlabcentral/fileexchange/9973-gridxy--v2-2-feb-2008-): plots reference lines (used by Ecopath growth curve plots related to the wce module)
 - [plots](http://www.mathworks.com/matlabcentral/fileexchange/10242-plots-m--plotses-m): Plots lines using multiple x/y axes (used by Ecopath growth curve plots related to the wce module)
 
-See [the examples document](./mixedlayer_examples.html) for a description of exactly which folders need to be added to your path based on the biology you intend to use.
+See [the examples document](http://htmlpreview.github.com/?/https://github.com/kakearney/mixed_layer-basics-pkg/blob/master/mixedlayer_examples.html) for a description of exactly which folders need to be added to your path based on the biology you intend to use.
 
 
 
@@ -59,7 +59,7 @@ runmixedlayer(In, p1, v1, ...)
 
 Again, see the function help for a full description of use.
 
-[The examples document](./mixedlayer_examples.html) (and the .m file of the same name, which created it) go through some simple examples of use in more detail.
+[The examples document](http://htmlpreview.github.com/?/https://github.com/kakearney/mixed_layer-basics-pkg/blob/master/mixedlayer_examples.html) (and the .m file of the same name, which created it) go through some simple examples of use in more detail.
 
 ### The biological modules
 
@@ -80,7 +80,7 @@ The code here comes with several different options for including biogeochemistry
   
 ### Examples
 
-For examples, please see [the examples document](./mixedlayer_examples.html) file in this repository.
+For examples, please see [the examples document](http://htmlpreview.github.com/?/https://github.com/kakearney/mixed_layer-basics-pkg/blob/master/mixedlayer_examples.html) file in this repository.
 
 
  
