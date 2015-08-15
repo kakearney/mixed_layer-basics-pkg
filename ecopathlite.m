@@ -976,6 +976,9 @@ flows([Idx.liv Idx.det],  Idx.res         ) = respiration;           % Remaining
 flows( Idx.out,          [Idx.liv Idx.det]) = imports;               % Some groups feed outside system
 flows( Idx.out,           Idx.det         ) = S.dtImp(Idx.det);      % And detrital groups can also import
 
+% primprod = (S.pb.*S.b.*S.pp)';
+% flows( Idx.out, Idx.liv) = flows(Idx.out,Idx.liv) + primprod(Idx.liv);          % Primary production comes from outside
+
 % What's the remaining balance in the detrital groups?
 
 surplus = nansum(flows(:,Idx.det),1)' - nansum(flows(Idx.det,:),2);
