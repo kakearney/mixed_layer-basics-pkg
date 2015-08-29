@@ -166,7 +166,21 @@ function varargout = legendflex(varargin)
 %               spacing typical of a regular legend, but occassionally the
 %               extent properties wrap a little too close to text, making
 %               things look crowded; in these cases you can try unsquishing
-%               things via this parameter. [2 1 1]    
+%               things via this parameter. [2 1 1]  
+%
+%   nolisten:   logical scalar.  If true, don't add the event listeners.
+%               The event listeners update the legend objects when you
+%               change a property of the labeled objects (such as line
+%               style, color, etc.).  However, the updating requires the
+%               legend to be redrawn, which can really slow things down,
+%               especially if you're labelling lots of objects that get
+%               changed together (if you change the line width of 100
+%               labeled lines, the legend gets redrawn 100 times).  In more
+%               recent releases, this also occurs when printing to file, so
+%               I recommend setting this to true if you plan to print a
+%               legend with a large number of labeled objects.  The legend
+%               will still be redrawn on figure resize regardless of the
+%               value of this parameter. [false]
 %
 %   In addition to these legendflex-specific parameters, this function will
 %   accept any parameter accepted by the original legend function (e.g.
@@ -272,6 +286,7 @@ p.addParamValue('bufferunit', 'pixels',  @(x) validateattributes(x, {'char'}, {}
 p.addParamValue('box',        'on',      @(x) validateattributes(x, {'char'}, {}));
 p.addParamValue('title',      '',        @(x) validateattributes(x, {'char','cell'}, {}));
 p.addParamValue('padding',    [2 1 1],   @(x) validateattributes(x, {'numeric'}, {'nonnegative', 'size', [1 3]}));
+p.addParamValue('nolisten',   false,     @(x) validateattributes(x, {'logical'}, {'scalar'}));
 
 p.KeepUnmatched = true;
 
@@ -642,19 +657,23 @@ else
     end
 end
 
-% Run the resync function if anything changes with the labeled objects
+if ~Opt.nolisten
 
-objwatch = findall(h.labeledobj, 'type', 'line', '-or', 'type', 'patch');
+    % Run the resync function if anything changes with the labeled objects
 
-for ii = 1:length(objwatch)
-    switch lower(get(objwatch(ii), 'type'))
-        case 'line'
-            triggerprops = {'Color','LineStyle','LineWidth','Marker','MarkerSize','MarkerEdgeColor','MarkerFaceColor'};
-            addlistener(objwatch(ii), triggerprops, 'PostSet', @(h,ed) resyncprops(h,ed,hnew.leg));
-        case 'patch'
-            triggerprops = {'CData','CDataMapping','EdgeAlpha','EdgeColor','FaceAlpha','FaceColor','LineStyle','LineWidth','Marker','MarkerEdgeColor','MarkerFaceColor','MarkerSize'};
-            addlistener(objwatch(ii), triggerprops, 'PostSet', @(h,ed) resyncprops(h,ed,hnew.leg));
+    objwatch = findall(h.labeledobj, 'type', 'line', '-or', 'type', 'patch');
+
+    for ii = 1:length(objwatch)
+        switch lower(get(objwatch(ii), 'type'))
+            case 'line'
+                triggerprops = {'Color','LineStyle','LineWidth','Marker','MarkerSize','MarkerEdgeColor','MarkerFaceColor'};
+                addlistener(objwatch(ii), triggerprops, 'PostSet', @(h,ed) resyncprops(h,ed,hnew.leg));
+            case 'patch'
+                triggerprops = {'CData','CDataMapping','EdgeAlpha','EdgeColor','FaceAlpha','FaceColor','LineStyle','LineWidth','Marker','MarkerEdgeColor','MarkerFaceColor','MarkerSize'};
+                addlistener(objwatch(ii), triggerprops, 'PostSet', @(h,ed) resyncprops(h,ed,hnew.leg));
+        end
     end
+
 end
 
     
