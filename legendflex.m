@@ -616,6 +616,28 @@ delete(h.leg);
 set(figh, 'currentaxes', currax);
 drawnow; % Not sure why this is necessary for the currentaxes to take effect, but it is
 
+% Fix for vertical-alignment issue: This solution still isn't perfect, but
+% it seems to help for most Interpreter-none and Interpreter-latex cases.
+% The TeX interpreter still places sub- and superscripts too high/low... no
+% robust fix found for that yet.
+%
+% Thanks to Søren Enemark for this suggestion.
+
+textobj = hnew.obj(1:nobj);
+yheight = get(hnew.leg, 'ylim');
+yheight = yheight(2);
+
+ylo = get(textobj(Opt.nrow), 'extent');
+ylo = ylo(2);
+yhi = get(textobj(1), 'extent');
+yhi = sum(yhi([2 4]));
+dy = yheight/2 - 0.5*(ylo + yhi);
+for ii = 1:length(textobj)
+    pos = get(textobj(ii), 'position');
+    set(textobj(ii), 'position', pos + [0 dy 0]);
+end
+
+
 %-------------------
 % Callbacks and 
 % listeners
