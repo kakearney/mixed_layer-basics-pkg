@@ -92,26 +92,32 @@ A.dc(isnan(A.dc)) = 0;
 % tmp = cat(1, tmp{:});
 % cname(~isemp) = tmp;
 
-detname = Base.Group(isdet);
-[~, detloc] = ismember(detname, bcol);
-A.df = table2array(Base(isgroup,detloc));
+ndet = A.ngroup - A.nlive;
+
+idxdet = (1:ndet)+10;
+idxfish = (1:A.ngear)+max(idxdet);
+idxdisc = (1:A.ngear)+max(idxfish);
+
+% detname = Base.Group(isdet);
+% [~, detloc] = ismember(detname, bcol);
+A.df = table2array(Base(isgroup,idxdet));
 
 % Fisheries
 
 A.fleet = Base.Group(isgear);
-[~, fleetloc] = ismember(A.fleet, bcol);
-[tf, discloc] = ismember(cellfun(@(x) ['disc_' x], A.fleet, 'uni', 0), bcol);
-if ~any(tf)
-    [tf, discloc] = ismember(cellfun(@(x) [x '_disc'], A.fleet, 'uni', 0), bcol);
-end
-if ~any(tf)
-    error('Discard columns not found');
-end
+% [~, fleetloc] = ismember(A.fleet, bcol);
+% [tf, discloc] = ismember(cellfun(@(x) ['disc_' x], A.fleet, 'uni', 0), bcol);
+% if ~any(tf)
+%     [tf, discloc] = ismember(cellfun(@(x) [x '_disc'], A.fleet, 'uni', 0), bcol);
+% end
+% if ~any(tf)
+%     error('Discard columns not found');
+% end
 
-A.landing = table2array(Base(isgroup,fleetloc));
-A.discard = table2array(Base(isgroup,discloc));
+A.landing = table2array(Base(isgroup,idxfish));
+A.discard = table2array(Base(isgroup,idxdisc));
 
-A.discardFate = table2array(Base(isgear,detloc));
+A.discardFate = table2array(Base(isgear,idxdet));
 
 % Stanza data
 
@@ -129,12 +135,13 @@ A.vbK = ones(A.ngroup,1) * -1;
 A.vbK(jtf) = Juvs.VonBK;
 A.vbK(atf) = Juvs.VonBK;
 
+
 nstanza = size(Juvs,1);
 A.stanzadata = dataset(...
     {(1:size(Juvs,1))', 'StanzaID'}, ...
     {Juvs.StanzaName,   'StanzaName'}, ...
     {nan(nstanza,1),    'HatchCode'}, ...
-    {nan(nstanza,1),    'BABsplit'}, ...
+    {Juvs.AduZ_BAB,     'BABsplit'}, ...  % TODO check this
     {nan(nstanza,1),    'WmatWinf'}, ...
     {Juvs.RecPower,     'RecPower'}, ...
     {nan(nstanza,1),    'FixedFecundity'}, ...
@@ -142,6 +149,14 @@ A.stanzadata = dataset(...
     {nan(nstanza,1),    'EggsAtSpawn'}, ...
     {nan(nstanza,1),    'LeadingCB'});  % Note: mostly placeholders right now
 
+% Pedigree (At the moment, Rpath allows pedigree values for B, PB, QB, DC,
+% and each gear's catch, while I focus on B, PB, QB, DC, EE, and GE)
+
+A.pedigree = nan(A.ngroup, 7);
+A.pedigree(:,1) = Ped.B;
+A.pedigree(:,2) = Ped.PB;
+A.pedigree(:,3) = Ped.QB;
+A.pedigree(:,4) = Ped.Diet;
 
 function name = parsecolname(T)
 name = T.Properties.VariableNames;
