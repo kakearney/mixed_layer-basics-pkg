@@ -616,7 +616,7 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         if multiflag
             for ie = 1:nens
                 if ~FailE(ie).flag
-                    [Ens(ie), FailE(ie)] = alg5(Ens(ie));
+                    [Ens(ie), FailE(ie)] = alg5(Ens(ie), islive);
                 end
             end
         end
@@ -709,7 +709,13 @@ end
 
 if multiflag
     tmp = {C, CE};
-    varargout = tmp(1:nargout);
+    if nargout > 2
+        warning('Multi-ensemble mode does not support debugging outputs');
+        varargout(1:2) = tmp;
+        [varargout{3:nargout}] = deal(NaN);
+    else
+        varargout = tmp(1:nargout);
+    end
 else
 
     if nargout == 0
