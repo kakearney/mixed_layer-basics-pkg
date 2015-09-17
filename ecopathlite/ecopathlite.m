@@ -616,7 +616,7 @@ while ~checkbasic(S.b, S.pb, S.qb, S.ee, S.ge, islive, S.pp)
         if multiflag
             for ie = 1:nens
                 if ~FailE(ie).flag
-                    [Ens(ie), FailE(ie)] = alg5(Ens(ie));
+                    [Ens(ie), FailE(ie)] = alg5(Ens(ie), islive);
                 end
             end
         end
@@ -709,7 +709,13 @@ end
 
 if multiflag
     tmp = {C, CE};
-    varargout = tmp(1:nargout);
+    if nargout > 2
+        warning('Multi-ensemble mode does not support debugging outputs');
+        varargout(1:2) = tmp;
+        [varargout{3:nargout}] = deal(NaN);
+    else
+        varargout = tmp(1:nargout);
+    end
 else
 
     if nargout == 0
@@ -975,6 +981,9 @@ flows( Idx.gear,          Idx.out         ) = sum(S.landing,1);      % Landings 
 flows([Idx.liv Idx.det],  Idx.res         ) = respiration;           % Remaining production goes to respiration
 flows( Idx.out,          [Idx.liv Idx.det]) = imports;               % Some groups feed outside system
 flows( Idx.out,           Idx.det         ) = S.dtImp(Idx.det);      % And detrital groups can also import
+
+% primprod = (S.pb.*S.b.*S.pp)';
+% flows( Idx.out, Idx.liv) = flows(Idx.out,Idx.liv) + primprod(Idx.liv);          % Primary production comes from outside
 
 % What's the remaining balance in the detrital groups?
 
