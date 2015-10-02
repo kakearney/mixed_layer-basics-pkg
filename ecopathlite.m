@@ -969,21 +969,28 @@ respiration(S.pp >= 1) = 0;
 Idx.liv = 1:S.nlive;
 Idx.det = (S.nlive+1):S.ngroup;
 Idx.gear = (1:S.ngear) + S.ngroup;
-Idx.out = S.ngroup+S.ngear+1;
-Idx.res = S.ngroup+S.ngear+2;
+Idx.out = S.ngroup+S.ngear+1; % Import/export
+Idx.res = S.ngroup+S.ngear+2; % Respiration
+Idx.lan = S.ngroup+S.ngear+3; % Fisheries landings
+Idx.gpp = S.ngroup+S.ngear+4; % Primary production
 
-flows = zeros(S.ngroup+S.ngear+1,S.ngroup+S.ngear+2);   
+flows = zeros(S.ngroup+S.ngear+4,S.ngroup+S.ngear+4);   
 flows([Idx.liv Idx.det], [Idx.liv Idx.det]) = q0;                    % Pred eats prey
 flows([Idx.liv Idx.det], [Idx.det Idx.out]) = mort + egest;          % Non-pred loss and egestion goes to detritus or export
 flows([Idx.liv Idx.det],  Idx.gear        ) = S.landing + S.discard; % Catches and discards go from groups to gears
 flows( Idx.gear,         [Idx.det Idx.out]) = discards;              % Discards are then sent to detritus
-flows( Idx.gear,          Idx.out         ) = sum(S.landing,1);      % Landings are exported from the system 
+flows( Idx.gear,          Idx.lan         ) = sum(S.landing,1);      % Landings are exported from the system 
 flows([Idx.liv Idx.det],  Idx.res         ) = respiration;           % Remaining production goes to respiration
 flows( Idx.out,          [Idx.liv Idx.det]) = imports;               % Some groups feed outside system
 flows( Idx.out,           Idx.det         ) = S.dtImp(Idx.det);      % And detrital groups can also import
 
-% primprod = (S.pb.*S.b.*S.pp)';
-% flows( Idx.out, Idx.liv) = flows(Idx.out,Idx.liv) + primprod(Idx.liv);          % Primary production comes from outside
+primprod = (S.pb.*S.b.*S.pp)';
+flows( Idx.gpp, Idx.liv)                    = primprod(Idx.liv);                        % Primary production comes from outside
+% TODO: source minus sink is unbalanced for partial primary producers...
+% did I miss something? A diet adjustment perhaps?  I've tried a few
+% different things to try to eliminate this imbalance, but those lead to a
+% mismatch with EwE6, which seems to ignore partial primary production when
+% calculating consumption rates.
 
 % What's the remaining balance in the detrital groups?
 
