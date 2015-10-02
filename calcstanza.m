@@ -131,6 +131,10 @@ for is = 1:ns
         col = num2cell(cmap(1:length(hl),:),2);
         set(hl, {'color'}, col);
         set(ha, {'ycolor'}, col);
+        xlabel(ha(1), 'Age (months)');
+        ylabel(ha(1), 'w = von Bertalanffy body weight')
+        ylabel(ha(2), 'l = survivorship')
+        ylabel(ha(3), 'w*l')
     end
     
 end
