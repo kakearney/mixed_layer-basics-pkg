@@ -90,7 +90,8 @@ end
 hasdtimp = (1:A.ngroup)' <= A.nlive & A.dtImp > 0;
 if any(hasdtimp)
     if ~warnoff
-        warning('Non-zero values found for detritus import of live groups;\n values have been reset to 0');
+        warnmessage('Non-zero values found for detritus import of live groups;\n values have been reset to 0', ...
+                hasdtimp, 'dtImp', A);
     end
     A.dtImp(hasdtimp) = 0;
 end
@@ -98,7 +99,8 @@ end
 nandtimp = (1:A.ngroup)' > A.nlive & isnan(A.dtImp);
 if any(nandtimp)
     if ~warnoff
-        warning('NaN found in detritus import, replacing with 0');
+        warnmessage('NaN found in detritus import, replacing with 0', ...
+                nandtimp, 'dtImp', A);
     end
     A.dtImp(nandtimp) = 0;
 end
@@ -108,7 +110,9 @@ for ifield = 1:length(epfields)
     isneg = (A.(epfields{ifield}) < 0);
     if any(isneg)
         if ~warnoff
-            warning('Negative placeholders found in %s field, replacing with NaN', fields{ifield});
+            msg = sprintf('Negative placeholders found in %s field, replacing with NaN', epfields{ifield});
+            warnmessage(msg, ...
+                isneg, epfields{ifield}, A);
         end
         A.(epfields{ifield})(isneg) = NaN;
     end
@@ -117,7 +121,8 @@ end
 qbnotzero = A.pp >= 1 & A.qb ~= 0;
 if any(qbnotzero)
     if ~warnoff
-        warning('Non-zero value found for a producer or detrital Q/B, replacing with zero');
+        warnmessage('Non-zero value found for a producer or detrital Q/B, replacing with zero', ...
+                qbnotzero, 'qb', A);
     end
     A.qb(qbnotzero) = 0;
 end
@@ -125,7 +130,8 @@ end
 genotzero = A.pp >= 1 & A.ge ~= 0;
 if any(genotzero)
     if ~warnoff
-        warning('Non-zero value found for a producer or detrital GE, replacing with zero');
+        warnmessage('Non-zero value found for a producer or detrital GE, replacing with zero', ...
+                genotzero, 'ge', A);
     end
     A.ge(genotzero) = 0;
 end
@@ -133,7 +139,8 @@ end
 gsnotzero = A.pp >= 1 & A.gs ~= 0;
 if any(gsnotzero)
     if ~warnoff
-        warning('Non-zero value found for a producer or detrital GS, replacing with zero');
+        warnmessage('Non-zero value found for a producer or detrital GS, replacing with zero', ...
+                gsnotzero, 'gs', A);
     end
     A.gs(gsnotzero) = 0;
 end
@@ -141,7 +148,8 @@ end
 pbnotzero = A.pp == 2 & A.pb ~= 0;
 if any(pbnotzero)
     if ~warnoff
-        warning('Non-zero value found for detrital P/B, replacing with zero');
+        warnmessage('Non-zero value found for detrital P/B, replacing with zero', ...
+                pbnotzero, 'pb', A);
     end
     A.pb(pbnotzero) = 0;
 end
@@ -149,19 +157,28 @@ end
 detbmissing = isnan(A.b) & A.pp == 2;
 if any(detbmissing)
     if ~warnoff
-        warning('Detritus groups found with missing biomass; replacing with 0');
+        warnmessage('Detritus groups found with missing biomass; replacing with 0', ...
+                detbmissing, 'b', A);
     end
     A.b(detbmissing) = 0;
 end
+
+% Check diet: should sum to 1 for non-producers.  Any missing goes to
+% import.
+
+% tol = 1e-6;
+% dcsum = sum(A.dc,1);
+% dctarget = max(1 - A.pp,0);
+% 
+% ppadjust = (1-dcsum')<tol & (A.pp < 1 & A.pp > 0);
+% A.dc(:,ppadjust) = bsxfun(@times, A.dc(:,ppadjust), dctarget(ppadjust)');
 
 % Added input field in later versions of code, derive from DC if not
 % present
 
 if ~isfield(A, 'import')
-    A.import = 1 - sum(A.dc,1)';
+    A.import = 1 - sum(A.dc,1)' - min(A.pp,1);
 end
-
-
 
 %----------------------------
 % Check Ecosim-related 
@@ -190,7 +207,8 @@ if isfield(A, 'maxrelpb')
     maxpbnotzero = A.pp ~= 1 & A.maxrelpb ~= 0;
     if any(maxpbnotzero)
         if ~warnoff
-            warning('Non-zero max rel P/B found for non-producers, replacing with 0');
+            warnmessage('Non-zero max rel P/B found for non-producers, replacing with 0', ...
+                maxpbnotzero, 'maxrelpb', A);
         end
         A.maxrelpb(maxpbnotzero) = 0;
     end
@@ -203,7 +221,9 @@ for ifd = 2:length(groupinfo)
         ginotzero = A.pp ~= 0 & A.(groupinfo{ifd}) ~= 0;
         if any(ginotzero)
             if ~warnoff
-                warning('Non-zero %s found for producer or detritus, replacing with 0', groupinfo{ifd});
+                msg = sprintf('Non-zero %s found for producer or detritus, replacing with 0', groupinfo{ifd});
+                warnmessage(msg, ...
+                    ginotzero, groupinfo{ifd}, A);
             end
             A.(groupinfo{ifd})(ginotzero) = 0;
         end
@@ -219,7 +239,8 @@ if isfield(A, 'kv')
     kvnotzero = A.dc == 0 & A.kv ~= 0;
     if any(kvnotzero(:))
         if ~warnoff
-            warning('Non-zero kv found for non-feeding links, replacing with 0');
+            warnmessage('Non-zero kv found for non-feeding links, replacing with 0', ...
+                kvnotzero, 'kv', A);
         end
         A.kv(kvnotzero) = 0;
     end
@@ -267,6 +288,12 @@ if isfield(A, 'stanzadata')
     end    
 end
 
+% Warning messages
+
+function warnmessage(msg, mask, fld, A)
+tmp = [A.name(mask) num2cell(A.(fld)(mask))]';
+str = sprintf('  %s (%.2f)\n', tmp{:});
+warning('%s:\n%s', msg, str);
 
     
     
