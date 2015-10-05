@@ -273,19 +273,43 @@ if isfield(A, 'stanzadata')
     % implementation).  If it's further off, assume incorrect data, and
     % replace data for all stanzas of that group.
     
+    changeflag = ~any(isnan(A.stanzadata.BABsplit));
+    
     berr = (Tmp.b - A.b)./A.b;
     qerr = (Tmp.qb - A.qb)./A.qb;
     
     tol = 0.005;
     bwrong = abs(berr) > tol;
     qwrong = abs(qerr) > tol;
-    if any([bwrong; qwrong])
-        warning('Multi-stanza group data inconsistent; replacing');
-        bchange = ismember(A.stanza, unique(A.stanza(bwrong)));
-        A.b(bchange) = Tmp.b(bchange);
-        qchange = ismember(A.stanza, unique(A.stanza(qwrong)));
-        A.qb(qchange) = Tmp.qb(qchange);
-    end    
+    
+    if changeflag
+        if any([bwrong; qwrong])
+
+            bchange = ismember(A.stanza, unique(A.stanza(bwrong)));
+
+            if ~warnoff
+                msg = 'Multi-stanza group B data inconsistent; replacing';
+                tmp = [A.name(bchange) num2cell([A.b(bchange) Tmp.b(bchange)])]';
+                str = sprintf('  %s: %.2g -> %.2g\n', tmp{:});
+                warning('%s:\n%s', msg, str);
+            end
+            A.b(bchange) = Tmp.b(bchange);
+
+            qchange = ismember(A.stanza, unique(A.stanza(qwrong)));
+
+            if ~warnoff
+                msg = 'Multi-stanza group Q/B data inconsistent; replacing';
+                tmp = [A.name(qchange) num2cell([A.qb(qchange) Tmp.qb(qchange)])]';
+                str = sprintf('  %s: %.2g -> %.2g\n', tmp{:});
+                warning('%s:\n%s', msg, str);
+            end
+            A.qb(qchange) = Tmp.qb(qchange);
+        end   
+    else
+        if ~warnoff
+            warning('Not checking stanza parameters');
+        end
+    end
 end
 
 % Warning messages
