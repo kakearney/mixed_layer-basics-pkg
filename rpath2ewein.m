@@ -1,7 +1,7 @@
-function A = rpath2ewein(basename, varargin)
+function [A,B] = rpath2ewein(basename, varargin)
 %RPATH2EWEIN Reads in Ecopath data from Rpath-formatted .csv files
 %
-% A = rpath2ewein(basename, p1, v1, ...)
+% [A, B] = rpath2ewein(basename, p1, v1, ...)
 %
 % Input variables:
 %
@@ -24,6 +24,8 @@ function A = rpath2ewein(basename, varargin)
 % Output variables:
 %
 %   A:          ecopath input structure (see ecopathlite.m)
+%
+%   B:          structure with full input tables from files
 
 % Copyright 2015 Kelly Kearney
 
@@ -38,6 +40,11 @@ Base = readtable([basename Opt.basestr '.csv']);
 Diet = readtable([basename Opt.dietstr '.csv'], 'ReadRowNames', true);
 Juvs = readtable([basename Opt.juvsstr '.csv']);
 Ped  = readtable([basename Opt.pedstr '.csv']);
+
+B.Base = Base;
+B.Diet = Diet;
+B.Juvs = Juvs;
+B.Ped = Ped;
 
 bcol = parsecolname(Base);
 dcol = parsecolname(Diet);
@@ -129,19 +136,21 @@ A.stanza(jtf) = jloc(jtf);
 A.stanza(atf) = aloc(atf);
 
 A.ageStart = zeros(A.ngroup,1);
-A.ageStart(atf) = Juvs.RecAge;
+A.ageStart(atf) = Juvs.RecAge*12;
 
 A.vbK = ones(A.ngroup,1) * -1;
 A.vbK(jtf) = Juvs.VonBK;
 A.vbK(atf) = Juvs.VonBK;
 
 
+bab = mean([Juvs.JuvZ_BAB Juvs.AduZ_BAB],2);
+
 nstanza = size(Juvs,1);
 A.stanzadata = dataset(...
     {(1:size(Juvs,1))', 'StanzaID'}, ...
     {Juvs.StanzaName,   'StanzaName'}, ...
     {nan(nstanza,1),    'HatchCode'}, ...
-    {Juvs.AduZ_BAB,     'BABsplit'}, ...  % TODO check this
+    {bab,               'BABsplit'}, ...  % TODO check this
     {nan(nstanza,1),    'WmatWinf'}, ...
     {Juvs.RecPower,     'RecPower'}, ...
     {nan(nstanza,1),    'FixedFecundity'}, ...
