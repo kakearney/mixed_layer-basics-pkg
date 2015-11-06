@@ -174,7 +174,7 @@ pedigree(pedigree == 0) = NaN;
 bbped = pedigree(:,1);
 pbped = pedigree(:,2);
 qbped = pedigree(:,3);
-dcped = repmat(pedigree(:,4), 1, ng);
+dcped = repmat(pedigree(:,4), 1, ng)';
 if size(pedigree,2) > 4
     eeped = pedigree(:,5);
 else
