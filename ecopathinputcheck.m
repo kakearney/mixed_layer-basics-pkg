@@ -273,24 +273,26 @@ if isfield(A, 'stanzadata')
     % implementation).  If it's further off, assume incorrect data, and
     % replace data for all stanzas of that group.
     
-    changeflag = ~any(isnan(A.stanzadata.BABsplit));
+    changeflag = iscell(A.stanzadata.BABsplit) || ~any(isnan(A.stanzadata.BABsplit));
     
     berr = (Tmp.b - A.b)./A.b;
     qerr = (Tmp.qb - A.qb)./A.qb;
+    baerr = (Tmp.ba - A.ba)./A.ba;
     
     tol = 0.005;
     bwrong = abs(berr) > tol;
     qwrong = abs(qerr) > tol;
+    bawrong = abs(baerr) > tol;
     
     if changeflag
-        if any([bwrong; qwrong])
+        if any([bwrong; qwrong; bawrong])
 
             bchange = ismember(A.stanza, unique(A.stanza(bwrong)));
 
             if ~warnoff
-                msg = 'Multi-stanza group B data inconsistent; replacing';
-                tmp = [A.name(bchange) num2cell([A.b(bchange) Tmp.b(bchange)])]';
-                str = sprintf('  %s: %.2g -> %.2g\n', tmp{:});
+                msg = 'Multi-stanza data inconsistent; replacing all B, Q/B, and BA in stanza groups related to these B...';
+                tmp = [A.name(bwrong) num2cell([A.b(bwrong) Tmp.b(bwrong)])]';
+                str = sprintf('  %s: %.4g -> %.4g\n', tmp{:});
                 warning('%s:\n%s', msg, str);
             end
             A.b(bchange) = Tmp.b(bchange);
@@ -298,12 +300,22 @@ if isfield(A, 'stanzadata')
             qchange = ismember(A.stanza, unique(A.stanza(qwrong)));
 
             if ~warnoff
-                msg = 'Multi-stanza group Q/B data inconsistent; replacing';
-                tmp = [A.name(qchange) num2cell([A.qb(qchange) Tmp.qb(qchange)])]';
-                str = sprintf('  %s: %.2g -> %.2g\n', tmp{:});
+                msg = '...Q/B...';
+                tmp = [A.name(qwrong) num2cell([A.qb(qwrong) Tmp.qb(qwrong)])]';
+                str = sprintf('  %s: %.4g -> %.4g\n', tmp{:});
                 warning('%s:\n%s', msg, str);
             end
             A.qb(qchange) = Tmp.qb(qchange);
+            
+            bachange = ismember(A.stanza, unique(A.stanza(bawrong)));
+            if ~warnoff
+                msg = '... and BA';
+                tmp = [A.name(bawrong) num2cell([A.ba(bawrong) Tmp.ba(bawrong)])]';
+                str = sprintf('  %s: %.4g -> %.4g\n', tmp{:});
+                warning('%s:\n%s', msg, str);
+            end
+            A.ba(bachange) = Tmp.ba(bachange);
+            
         end   
     else
         if ~warnoff
