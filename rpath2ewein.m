@@ -142,15 +142,20 @@ A.vbK = ones(A.ngroup,1) * -1;
 A.vbK(jtf) = Juvs.VonBK;
 A.vbK(atf) = Juvs.VonBK;
 
-
-bab = mean([Juvs.JuvZ_BAB Juvs.AduZ_BAB],2);
+bab = A.ba./A.b;
+babtmp = [bab(Juvs.JuvNum) bab(Juvs.AduNum)];
+if all(babtmp(:,1) == babtmp(:,2))
+    bab = babtmp(:,1);
+else
+    bab = num2cell(babtmp,2);
+end
 
 nstanza = size(Juvs,1);
 A.stanzadata = dataset(...
     {(1:size(Juvs,1))', 'StanzaID'}, ...
     {Juvs.StanzaName,   'StanzaName'}, ...
     {nan(nstanza,1),    'HatchCode'}, ...
-    {bab,               'BABsplit'}, ...  % TODO check this
+    {bab,               'BABsplit'}, ... 
     {nan(nstanza,1),    'WmatWinf'}, ...
     {Juvs.RecPower,     'RecPower'}, ...
     {nan(nstanza,1),    'FixedFecundity'}, ...
@@ -158,10 +163,11 @@ A.stanzadata = dataset(...
     {nan(nstanza,1),    'EggsAtSpawn'}, ...
     {nan(nstanza,1),    'LeadingCB'});  % Note: mostly placeholders right now
 
+
 % Pedigree (At the moment, Rpath allows pedigree values for B, PB, QB, DC,
 % and each gear's catch, while I focus on B, PB, QB, DC, EE, and GE)
 
-A.pedigree = nan(A.ngroup, 7);
+A.pedigree = nan(A.ngroup, 6);
 A.pedigree(:,1) = Ped.B;
 A.pedigree(:,2) = Ped.PB;
 A.pedigree(:,3) = Ped.QB;
