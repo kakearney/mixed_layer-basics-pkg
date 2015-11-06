@@ -250,10 +250,15 @@ end
 % Check multi-stanza values
 %----------------------------
 
+% Check for appropriate variables.
+
+stanzavars = {'stanza', 'vbK', 'stanzadata'};
+hasstanzas = all(isfield(A, stanzavars)) && any(A.stanza > 0);
+
 % Check that multi-stanza group values are consistent with each other if
 % filled in already.  Fill in if not.
 
-if isfield(A, 'stanzadata')
+if hasstanzas
     Tmp = calcstanza(A);
     
     % If non-leading stanza group data was missing, fill it in (all or
