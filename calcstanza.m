@@ -1,7 +1,8 @@
-function A = calcstanza(A)
+function A = calcstanza(A, varargin)
 % CALCSTANZA Calculate B and Q/B values for multi-stanza Ecopath groups
 %
 % A = calcstanza(In)
+% A = calcstanza(In, p1, v1)
 %
 % This function calculates the B and QB values associated with multistanza
 % ecopath groups.
@@ -29,20 +30,42 @@ function A = calcstanza(A)
 %
 % Input variables:
 %
-%   In: Ecopath input structure.  B and QB of non-leading multi-stanza 
-%       groups can be unknown (i.e. NaN).  Stanza-related fields (stanza,
-%       stanzadata.stanzaID, stanzadata.BABsplit, ageStart, and vbK) must
-%       be present. 
+%   In:     Ecopath input structure.  B and QB of non-leading multi-stanza 
+%           groups can be unknown (i.e. NaN).  Stanza-related fields
+%           (stanza, stanzadata.stanzaID, stanzadata.BABsplit, ageStart,
+%           and vbK) must be present.   
+%
+% Optional input variables (passed as parameter/value pairs)
+%
+%   plot:   logical scalar, true to plot growth curve details for each
+%           stanza group, primarily for debugging purposes.  [false] 
+%
+%   da:     discretizatin interval (months) for age calculations [1]
 %
 % Output variables:
 %
-%   A:  Ecopath input structure, identical to In except that non-leading
-%       multi-stanza group B and QB values have been recalculated/filled
-%       in.
+%   A:      Ecopath input structure, identical to In except that
+%           non-leading multi-stanza group B and QB values have been
+%           recalculated/filled in.  
 
 % Copyright 2014-2015 Kelly Kearney
 
+% Parse input
+
 ns = length(A.stanzadata.StanzaID);
+
+Opt.plot = false;
+Opt.da = 1;
+
+Opt = parsepv(Opt, varargin);
+
+% Set up plotting (if true)
+
+if Opt.plot
+    h = plotgrid('setup', cell(ns,1), [],[],'sp', 0.01, 'mar', 0.05);
+end
+    
+% Loop over multi-stanza groups
 
 for is = 1:ns
     
@@ -54,87 +77,155 @@ for is = 1:ns
     % Parameters
     
     k = A.vbK(idx(1));               % Curvature parameter
-    bab = A.stanzadata.BABsplit(is)./12; % biomass acc. per unit biomass, monthly
-    
-    % Setup of discretization.  Note that Ecopath uses 90% as the upper
-    % bound, but that seems to leave out a good amount, so I'm upping it to
-    % 99.99%.
-    
-    da = 1;
-    amax = log(1 - 0.9999^(1/3))./-(k/12); 
-    xa = 0:da:ceil(amax);
-    
-    % Biomass and consumption of each stanza
-    
-    ia = sum(bsxfun(@gt, xa, a));
-    ia(ia == 0) = 1;
-    z = A.pb(idx(ia));
-   
-    zsum = cumsum(z./12 .* da);    % Integral of Z, 0 to a
-    l = exp(-zsum- xa'.*bab);      % survivorship
-    
-    num = l./sum(l);
-    w = (1 - exp(-k.*xa'./12)).^3; % weight    
-    wwa = w.^(2/3);
-    
-    bsa = l.*w./(sum(l.*w)); % relative biomass at a given age
-    csa = (l.*wwa./(sum(l.*w))); % relative consumption
-    
-    alim = [a; Inf];
-    [bs, qs] = deal(zeros(size(a)));
-    for ia = 1:length(a)
-        isin = xa >= alim(ia) & xa < alim(ia+1);
-        bs(ia) = sum(l(isin).*w(isin))./sum(l.*w);
-        
-        qs(ia) = sum(l(isin).*wwa(isin))./sum(l.*wwa);
-        
+    if iscell(A.stanzadata.BABsplit)
+        bab = A.stanzadata.BABsplit{is};
+    else
+        bab = A.stanzadata.BABsplit(is);
     end
+    z = A.pb(idx);
+    blead = A.b(idx(end));
+    qblead = A.qb(idx(end));
     
-    btot = A.b(idx(end))./bs(end);
-    b = btot .* bs;
-    A.b(idx) = b;
+    % Fill in non-leading group values
     
-    % Note: I'm not getting the exact same values here as in EwE6. I
-    % think this might be related to the K calculation in the original
-    % code, but I haven't yet figured out exactly what they're doing
-    % here...
-    %
-    % (from Sub CalculateStanzaParameters, in cEcosimModel.vb)
-    %
-    %-----
-    % K = 0   'temporarily use k to sure the sum:
-    % For Age = first(BaseCB) To Second(BaseCB)
-    %     K = K + m_stanza.SplitNo(isp, Age) * m_stanza.WWa(isp, Age)
-    % Next
-    % 
-    % 
-    % If K > 0 Then K = cb(BaseCB) * Bio(BaseCB) / K 'THIS IS THE REAL CONSTANT k
-    %----
-    %
-    % I think this is just checking the the sum over what I call qs is 1,
-    % and normalizing if not.  So far my tests are always at 1 even without
-    % this check.  
-
-    qtot = A.b(idx(end)).*A.qb(idx(end))./qs(end);    
-    q = qtot .* qs;
-    A.qb(idx) = q./b;
-
-    % Plot to check
+    [Out,D] = editstanzacalcs(a, k, bab, blead, qblead, z, Opt.da);
     
-    plotflag = false;
-    if plotflag
-        figure;
-
-        [hl, ha] = plots(xa', [w l w.*l]);
-        gridxy(a, [],'parent', ha(1));
-        cmap = get(0, 'DefaultAxesColorOrder');
-        col = num2cell(cmap(1:length(hl),:),2);
-        set(hl, {'color'}, col);
-        set(ha, {'ycolor'}, col);
-        xlabel(ha(1), 'Age (months)');
-        ylabel(ha(1), 'w = von Bertalanffy body weight')
-        ylabel(ha(2), 'l = survivorship')
-        ylabel(ha(3), 'w*l')
+    A.b(idx)  = Out.b;
+    A.qb(idx) = Out.qb;
+    A.ba(idx) = Out.ba;
+    
+    % Plot to check, mimicking the one in EwE6
+    
+    if Opt.plot
+        
+        yfac = max(D.y);
+        ynorm = bsxfun(@rdivide, D.y, yfac);
+        line(D.x, ynorm, 'parent', h.ax(is));
+        line([a a]', (ones(size(a))*[0 1])', 'color', 'k', 'parent', h.ax(is));
+        text(max(D.x)*0.98, 0.5, A.stanzadata.StanzaName{is}, ...
+            'parent', h.ax(is), 'vert', 'top', 'horiz', 'right', ...
+            'fontsize', 8);
+        set(h.ax(is), 'xlim', [0 max(D.x)]);     
     end
     
 end
+
+% Add labels to plots
+
+if Opt.plot
+    xlabel(h.ax(1), 'Age (months)');
+    lbl = {...
+            'w = von Bertalanffy body weight'
+            'l = survivorship'
+            'w*l'
+            '$\sum_{0}^{a}{Z_a} - a\frac{BA}{B}$'};
+    legendflex(h.ax(1), lbl, 'ref', h.ax(1), 'nrow', 1, 'anchor', {'n','s'}, ...
+        'xscale', 0.5, 'interpreter', 'Latex', 'buffer', [0 5]);
+end
+    
+
+%------------
+% Main calcs
+%------------
+
+function [Out, D] = editstanzacalcs(a, k, bab, blead, qblead, z, da)
+%
+% a:        vector, age (in months) at the start of stanza
+% k:        vonBertalanffy growth curve constant (annual)
+% bab:      relative biomass accumulation rate (BA/B), (annual)
+% blead:    biomass of leading stanza
+% qblead:   consumption rate of leading stanza (/yr)
+% da:       discretization interval (months)
+
+% Setup of discretization.  Note that Ecopath uses 90% as the upper
+% bound, but that seems to leave out a good amount, so I'm upping it to
+% 99.99%.
+    
+amax = log(1 - 0.9999^(1/3))./-(k/12); 
+amax90 = log(1 - 0.9^(1/3))./-(k/12); % Old one, used for plots
+xa = 0:da:ceil(amax);
+
+% Which stanza does each month-value fall into?
+
+ia = sum(bsxfun(@gt, xa, a));
+ia(ia == 0) = 1;
+
+% BAB value, either scalar for original EwE formulation (one rate for
+% whole group), or mutliple values for Rpath extension (one per age
+% group)
+
+if isscalar(bab)
+    bab2 = bab./12; % to monthly
+else
+    bab2 = bab(ia)./12; % expand, and to monthly
+end
+    
+% Expand Z values to month-ages
+
+z = z(ia);
+
+% Biomass and consumption of each stanza
+
+zsum = cumsum(z./12 .* da);    % Integral of Z, 0 to a
+l = exp(-zsum- xa'.*bab2);      % survivorship
+
+num = l./sum(l);
+w = (1 - exp(-k.*xa'./12)).^3; % weight    
+wwa = w.^(2/3);
+
+bsa = l.*w./(sum(l.*w));       % relative biomass at a given age
+csa = (l.*wwa./(sum(l.*w)));   % relative consumption
+
+alim = [a; Inf];
+[bs, qs] = deal(zeros(size(a)));
+for ia = 1:length(a)
+    isin = xa >= alim(ia) & xa < alim(ia+1);
+    bs(ia) = sum(l(isin).*w(isin))./sum(l.*w);
+
+    qs(ia) = sum(l(isin).*wwa(isin))./sum(l.*wwa);
+
+end
+
+btot = blead./bs(end);
+Out.b = btot .* bs;
+
+% Note: I'm not getting the exact same values here as in EwE6. I
+% think this might be related to the K calculation in the original
+% code, but I haven't yet figured out exactly what they're doing
+% here...
+%
+% (from Sub CalculateStanzaParameters, in cEcosimModel.vb)
+%
+%-----
+% K = 0   'temporarily use k to sure the sum:
+% For Age = first(BaseCB) To Second(BaseCB)
+%     K = K + m_stanza.SplitNo(isp, Age) * m_stanza.WWa(isp, Age)
+% Next
+% 
+% 
+% If K > 0 Then K = cb(BaseCB) * Bio(BaseCB) / K 'THIS IS THE REAL CONSTANT k
+%----
+%
+% I think this is just checking the the sum over what I call qs is 1,
+% and normalizing if not.  So far my tests are always at 1 even without
+% this check.  
+
+qtot = blead.*qblead./qs(end);    
+q = qtot .* qs;
+Out.qb = q./Out.b;
+
+% Calculate BA
+
+Out.ba = Out.b.*bab;
+
+% Values for plots
+
+isless = xa < amax90;
+D.x = xa(isless);
+D.y = [w l w.*l zsum-xa'.*bab];
+D.y = D.y(isless,:);
+
+
+
+
+
