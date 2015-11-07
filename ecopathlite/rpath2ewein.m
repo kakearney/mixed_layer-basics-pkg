@@ -1,7 +1,7 @@
-function A = rpath2ewein(basename, varargin)
+function [A,B] = rpath2ewein(basename, varargin)
 %RPATH2EWEIN Reads in Ecopath data from Rpath-formatted .csv files
 %
-% A = rpath2ewein(basename, p1, v1, ...)
+% [A, B] = rpath2ewein(basename, p1, v1, ...)
 %
 % Input variables:
 %
@@ -24,6 +24,8 @@ function A = rpath2ewein(basename, varargin)
 % Output variables:
 %
 %   A:          ecopath input structure (see ecopathlite.m)
+%
+%   B:          structure with full input tables from files
 
 % Copyright 2015 Kelly Kearney
 
@@ -38,6 +40,11 @@ Base = readtable([basename Opt.basestr '.csv']);
 Diet = readtable([basename Opt.dietstr '.csv'], 'ReadRowNames', true);
 Juvs = readtable([basename Opt.juvsstr '.csv']);
 Ped  = readtable([basename Opt.pedstr '.csv']);
+
+B.Base = Base;
+B.Diet = Diet;
+B.Juvs = Juvs;
+B.Ped = Ped;
 
 bcol = parsecolname(Base);
 dcol = parsecolname(Diet);
@@ -129,19 +136,26 @@ A.stanza(jtf) = jloc(jtf);
 A.stanza(atf) = aloc(atf);
 
 A.ageStart = zeros(A.ngroup,1);
-A.ageStart(atf) = Juvs.RecAge;
+A.ageStart(atf) = Juvs.RecAge*12;
 
 A.vbK = ones(A.ngroup,1) * -1;
 A.vbK(jtf) = Juvs.VonBK;
 A.vbK(atf) = Juvs.VonBK;
 
+bab = A.ba./A.b;
+babtmp = [bab(Juvs.JuvNum) bab(Juvs.AduNum)];
+if all(babtmp(:,1) == babtmp(:,2))
+    bab = babtmp(:,1);
+else
+    bab = num2cell(babtmp,2);
+end
 
 nstanza = size(Juvs,1);
 A.stanzadata = dataset(...
     {(1:size(Juvs,1))', 'StanzaID'}, ...
     {Juvs.StanzaName,   'StanzaName'}, ...
     {nan(nstanza,1),    'HatchCode'}, ...
-    {Juvs.AduZ_BAB,     'BABsplit'}, ...  % TODO check this
+    {bab,               'BABsplit'}, ... 
     {nan(nstanza,1),    'WmatWinf'}, ...
     {Juvs.RecPower,     'RecPower'}, ...
     {nan(nstanza,1),    'FixedFecundity'}, ...
@@ -149,10 +163,11 @@ A.stanzadata = dataset(...
     {nan(nstanza,1),    'EggsAtSpawn'}, ...
     {nan(nstanza,1),    'LeadingCB'});  % Note: mostly placeholders right now
 
+
 % Pedigree (At the moment, Rpath allows pedigree values for B, PB, QB, DC,
 % and each gear's catch, while I focus on B, PB, QB, DC, EE, and GE)
 
-A.pedigree = nan(A.ngroup, 7);
+A.pedigree = nan(A.ngroup, 6);
 A.pedigree(:,1) = Ped.B;
 A.pedigree(:,2) = Ped.PB;
 A.pedigree(:,3) = Ped.QB;
