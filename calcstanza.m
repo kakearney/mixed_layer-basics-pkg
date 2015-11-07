@@ -62,7 +62,24 @@ Opt = parsepv(Opt, varargin);
 % Set up plotting (if true)
 
 if Opt.plot
-    h = plotgrid('setup', cell(ns,1), [],[],'sp', 0.01, 'mar', 0.05);
+    
+    h.fig = figure;
+    
+    vfrac = 0.9;
+    hght1 = vfrac./ns;
+    hght2 = hght1*0.8;
+    
+    yax = 0.05:hght1:0.9;
+    yax = yax(end:-1:1);
+    
+    if verLessThan('matlab', 'R2014b')
+        h.ax = zeros(ns,1);
+    else
+        h.ax = gobjects(ns,1);
+    end
+    for ii = 1:ns
+        h.ax(ii) = axes('position', [0.05 yax(ii) 0.9 hght2]);
+    end
 end
     
 % Loop over multi-stanza groups
@@ -113,7 +130,7 @@ end
 % Add labels to plots
 
 if Opt.plot
-    xlabel(h.ax(1), 'Age (months)');
+    xlabel(h.ax(end), 'Age (months)');
     lbl = {...
             'w = von Bertalanffy body weight'
             'l = survivorship'
