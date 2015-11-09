@@ -6,21 +6,23 @@
 % makes it easier to maintain on my end... sorry about that).  To get the
 % basics running, you need to add a few folders to your path:  
 % 
-%   addpath('mixed_layer-pkg/mixed_layer');
-%   addpath('mixed_layer-pkg/mixed_layer/biomodules');
-%   addpath('mixed_layer-pkg/mixed_layer/biomodules_subs');
-%   addpath('mixed_layer-pkg/seawater_ver3_2');
-%   addpath('mixed_layer-pkg/mergestruct');
+%   addpath('mixed_layer-basics-pkg/mixed_layer');
+%   addpath('mixed_layer-basics-pkg/mixed_layer/biomodules');
+%   addpath('mixed_layer-basics-pkg/mixed_layer/biomodules_subs');
+%   addpath('mixed_layer-basics-pkg/seawater_ver3_2');
+%   addpath('mixed_layer-basics-pkg/mergestruct');
 %
 % (Alter the paths as necessary to wherever you place these folders).
 %
 % If you only plan to run the |cobalt_fweb| module, or if you're adding
 % your own biology module, then that's all you need.  To play with the |np|
-% or |npz| modules, add three more:   
+% or |npz| modules, add three more (although these are simple models, I
+% developed them when I was still experimenting with ODE solvers, hence
+% the extra dependencies):
 %
-%   addpath('mixed_layer-pkg/odefixed')
-%   addpath('mixed_layer-pkg/odewrap')
-%   addpath('mixed_layer-pkg/photosynthesis')
+%   addpath('mixed_layer-basics-pkg/odefixed');
+%   addpath('mixed_layer-basics-pkg/odewrap');
+%   addpath('mixed_layer-basics-pkg/photosynthesis');
 %
 % Most users (i.e. probably everyone but me) can ignore the rest of the
 % folders, which are related to the wce (water 
@@ -34,16 +36,17 @@
 % code).  That said, if you really want to give it a try, add the rest of
 % the folders to your path:
 %
-%   addpath('mixed_layer-pkg/ConsoleProgressBar')
-%   addpath('mixed_layer-pkg/cprintf')
-%   addpath('mixed_layer-pkg/gridxy')
-%   addpath('mixed_layer-pkg/plots')
-%   addpath('mixed_layer-pkg/cellstr2')
-%   addpath('mixed_layer-pkg/dirfull')
-%   addpath('mixed_layer-pkg/ecopathensemble')
-%   addpath('mixed_layer-pkg/ecopathlite')
-%   addpath('mixed_layer-pkg/parsepv')
-%   addpath('mixed_layer-pkg/regexpfound')
+%   addpath('mixed_layer-basics-pkg/ConsoleProgressBar');
+%   addpath('mixed_layer-basics-pkg/cellstr2');
+%   addpath('mixed_layer-basics-pkg/cprintf');
+%   addpath('mixed_layer-basics-pkg/dirfull');
+%   addpath('mixed_layer-basics-pkg/ecopathensemble');
+%   addpath('mixed_layer-basics-pkg/ecopathlite');
+%   addpath('mixed_layer-basics-pkg/legendflex');
+%   addpath('mixed_layer-basics-pkg/parsepv');
+%   addpath('mixed_layer-basics-pkg/regexpfound');
+%   addpath('mixed_layer-basics-pkg/setgetpos_V1.2');
+
 
 
 %% Running physics-only simulations

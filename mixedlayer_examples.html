@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>Examples for the mixed_layer model</title><meta name="generator" content="MATLAB 8.6"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-07-14"><meta name="DC.source" content="mixedlayer_examples.m"><style type="text/css">
+      --><title>Examples for the mixed_layer model</title><meta name="generator" content="MATLAB 8.6"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-11-09"><meta name="DC.source" content="mixedlayer_examples.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -66,24 +66,24 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h1>Examples for the mixed_layer model</h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Setting up your path</a></li><li><a href="#2">Running physics-only simulations</a></li><li><a href="#6">Adding biology</a></li><li><a href="#12">Ensemble simulations</a></li></ul></div><h2>Setting up your path<a name="1"></a></h2><p>The mixed_layer code is spread over several folders (mostly because that makes it easier to maintain on my end... sorry about that).  To get the basics running, you need to add a few folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/mixed_layer'</span>);
-addpath(<span class="string">'mixed_layer-pkg/mixed_layer/biomodules'</span>);
-addpath(<span class="string">'mixed_layer-pkg/mixed_layer/biomodules_subs'</span>);
-addpath(<span class="string">'mixed_layer-pkg/seawater_ver3_2'</span>);
-addpath(<span class="string">'mixed_layer-pkg/mergestruct'</span>);
-</pre><p>(Alter the paths as necessary to wherever you place these folders).</p><p>If you only plan to run the <tt>cobalt_fweb</tt> module, or if you're adding your own biology module, then that's all you need.  To play with the <tt>np</tt> or <tt>npz</tt> modules, add three more:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/odefixed'</span>)
-addpath(<span class="string">'mixed_layer-pkg/odewrap'</span>)
-addpath(<span class="string">'mixed_layer-pkg/photosynthesis'</span>)
-</pre><p>Most users (i.e. probably everyone but me) can ignore the rest of the folders, which are related to the wce (water column ecosystem) and the nemurokak (which is the lower-trophics-only version of wce) modules.  The parameter setup for these modules can get very complicated, enough so that I have entire toolboxes worth of functions dedicated to the task for just my one region of interest.  I would really appreciate if you would email me if you intend to start using these options, so we can discuss potential collaborations (and I can give more specific suggestions on how to use this portion of the code).  That said, if you really want to give it a try, add the rest of the folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-pkg/ConsoleProgressBar'</span>)
-addpath(<span class="string">'mixed_layer-pkg/cprintf'</span>)
-addpath(<span class="string">'mixed_layer-pkg/gridxy'</span>)
-addpath(<span class="string">'mixed_layer-pkg/plots'</span>)
-addpath(<span class="string">'mixed_layer-pkg/cellstr2'</span>)
-addpath(<span class="string">'mixed_layer-pkg/dirfull'</span>)
-addpath(<span class="string">'mixed_layer-pkg/ecopathensemble'</span>)
-addpath(<span class="string">'mixed_layer-pkg/ecopathlite'</span>)
-addpath(<span class="string">'mixed_layer-pkg/parsepv'</span>)
-addpath(<span class="string">'mixed_layer-pkg/regexpfound'</span>)
+  </style></head><body><div class="content"><h1>Examples for the mixed_layer model</h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Setting up your path</a></li><li><a href="#2">Running physics-only simulations</a></li><li><a href="#6">Adding biology</a></li><li><a href="#12">Ensemble simulations</a></li></ul></div><h2>Setting up your path<a name="1"></a></h2><p>The mixed_layer code is spread over several folders (mostly because that makes it easier to maintain on my end... sorry about that).  To get the basics running, you need to add a few folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-basics-pkg/mixed_layer'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/mixed_layer/biomodules'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/mixed_layer/biomodules_subs'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/seawater_ver3_2'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/mergestruct'</span>);
+</pre><p>(Alter the paths as necessary to wherever you place these folders).</p><p>If you only plan to run the <tt>cobalt_fweb</tt> module, or if you're adding your own biology module, then that's all you need.  To play with the <tt>np</tt> or <tt>npz</tt> modules, add three more (although these are simple models, I developed them when I was still experimenting with ODE solvers, hence the extra dependencies):</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-basics-pkg/odefixed'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/odewrap'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/photosynthesis'</span>);
+</pre><p>Most users (i.e. probably everyone but me) can ignore the rest of the folders, which are related to the wce (water column ecosystem) and the nemurokak (which is the lower-trophics-only version of wce) modules.  The parameter setup for these modules can get very complicated, enough so that I have entire toolboxes worth of functions dedicated to the task for just my one region of interest.  I would really appreciate if you would email me if you intend to start using these options, so we can discuss potential collaborations (and I can give more specific suggestions on how to use this portion of the code).  That said, if you really want to give it a try, add the rest of the folders to your path:</p><pre class="language-matlab">addpath(<span class="string">'mixed_layer-basics-pkg/ConsoleProgressBar'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/cellstr2'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/cprintf'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/dirfull'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/ecopathensemble'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/ecopathlite'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/legendflex'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/parsepv'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/regexpfound'</span>);
+addpath(<span class="string">'mixed_layer-basics-pkg/setgetpos_V1.2'</span>);
 </pre><h2>Running physics-only simulations<a name="2"></a></h2><p>The simplest way to run the <tt>mixed_layer</tt> model is to do so without any of the biological modules turned on.  The code comes with some default surface forcing datasets (1976 data for the Scotian Shelf), which can be used for some quick tests.  To run with all default variables, simply specify an output folder name.</p><pre class="codeinput">mixed_layer(<span class="string">'default'</span>);
 </pre><pre class="codeoutput">
 --------------------
@@ -95,12 +95,10 @@ default.nc: 1
 Initializing model...
   Missing heat data: 01/01/1976 00:00-01/01/1976 01:00
   Missing wind data: 12/31/1976 23:00-01/01/1977 00:00
-Warning: Specified outputfile/iens combo already exists; attempting to overwrite
-file 
 Running simulation...
   12/31/1976
 
-Mixed layer model completed successfully: 6.761060 s
+Mixed layer model completed successfully: 7.245590 s
 </pre><p>You might notice the warning messages under the Initializing step; they're letting us know that our forcing dataset doesn't quite span the whole simulation timeperiod, so it had to be extrapolated.  For tiny gaps like this, extrapolation is fine, but if you see gaps of more than a few hours, your input probably needs to be adjusted.</p><p>When run in single-simulation mode like this, the model creates two output files: one that holds the dimension variables (dimensions.nc), and one for everything else (sim0001.nc).  To read in data in the following examples, I use a little wrapper function called <tt>ncreads.m</tt>; you can find that <a href="https://github.com/kakearney/ncreads-pkg">here</a>.</p><pre class="codeinput"><span class="keyword">if</span> isempty(which(<span class="string">'ncreads'</span>))
     error(<span class="string">'To run this script as is, you need to download ncreads: https://github.com/kakearney/ncreads-pkg'</span>);
 <span class="keyword">end</span>
@@ -151,7 +149,7 @@ Initializing model...
 Running simulation...
   12/31/1985
 
-Mixed layer model completed successfully: 131.621893 s
+Mixed layer model completed successfully: 131.982132 s
 </pre><pre class="codeinput">Dim2  = ncreads(fullfile(<span class="string">'ess'</span>,<span class="string">'dimensions.nc'</span>));
 Data2 = ncreads(fullfile(<span class="string">'ess'</span>,<span class="string">'sim0001.nc'</span>), <span class="string">'temp'</span>, <span class="string">'sal'</span>);
 
@@ -196,7 +194,7 @@ Initializing model...
 Running simulation...
   12/31/1985
 
-Mixed layer model completed successfully: 253.511300 s
+Mixed layer model completed successfully: 254.949524 s
 </pre><pre class="codeinput">Dim3  = ncreads(fullfile(<span class="string">'ess_cobalt'</span>,<span class="string">'dimensions.nc'</span>));
 vars = {<span class="string">'sp'</span>, <span class="string">'lp'</span>, <span class="string">'sz'</span>,<span class="string">'mz'</span>,<span class="string">'lz'</span>};
 nv = length(vars);
@@ -244,7 +242,7 @@ Initializing model...
 Running simulation...
   12/31/1984
 
-Mixed layer model completed successfully: 103.024126 s
+Mixed layer model completed successfully: 101.406552 s
 </pre><pre class="codeinput">Dim4  = ncreads(fullfile(<span class="string">'ess_np'</span>,<span class="string">'dimensions.nc'</span>));
 Data4 = ncreads(fullfile(<span class="string">'ess_np'</span>,<span class="string">'sim0001.nc'</span>), <span class="string">'N'</span>,<span class="string">'P'</span>);
 
@@ -280,11 +278,11 @@ Ens = repmat(Ens, nens, 1);
 <span class="keyword">end</span>
 
 runmixedlayer(Ens, <span class="string">'name'</span>, <span class="string">'ess_npsensitivity'</span>, <span class="string">'verbose'</span>, false);
-</pre><pre class="codeoutput">14-Jul-2015 11:28:33: ./ess_npsensitivity: 5
-14-Jul-2015 11:30:17: ./ess_npsensitivity: 4
-14-Jul-2015 11:32:00: ./ess_npsensitivity: 3
-14-Jul-2015 11:33:43: ./ess_npsensitivity: 2
-14-Jul-2015 11:35:26: ./ess_npsensitivity: 1
+</pre><pre class="codeoutput">09-Nov-2015 10:23:14: ./ess_npsensitivity: 5
+09-Nov-2015 10:24:55: ./ess_npsensitivity: 4
+09-Nov-2015 10:26:42: ./ess_npsensitivity: 3
+09-Nov-2015 10:28:27: ./ess_npsensitivity: 2
+09-Nov-2015 10:30:11: ./ess_npsensitivity: 1
 </pre><p>The output folder now contains simXXXX.nc files for the 5 different variations.</p><pre class="codeinput">dir(<span class="string">'ess_npsensitivity'</span>)
 </pre><pre class="codeoutput">
 .              dimensions.nc  sim0002.nc     sim0004.nc     
@@ -292,7 +290,7 @@ runmixedlayer(Ens, <span class="string">'name'</span>, <span class="string">'ess
 
 </pre><p>We could loop over all these files and read in the data.  But with larger ensembles and multiple variables, that can become a pain.  The postprocess option in runmixedlayer reformats the output data so that instead of one file per simulation with all the variables in it, you get one file per variable with all simulations.  The postprocessing options relies on the NCO utilities (<a href="http://nco.sourceforge.net/">http://nco.sourceforge.net/</a>), so you'll need to have those installed and accessible via Matlab to use this option.</p><pre class="codeinput">ncdisp(fullfile(<span class="string">'ess_npsensitivity'</span>, <span class="string">'sim0001.nc'</span>));
 </pre><pre class="codeoutput">Source:
-           /Users/kakearney/Documents/GitRepos/Distribution/readmeScripts/mixedlayer_examples/ess_npsensitivity/sim0001.nc
+           /Users/kakearney/Documents/GitRepos/Distribution/mixed_layer-basics-pkg/ess_npsensitivity/sim0001.nc
 Format:
            netcdf4
 Dimensions:
@@ -565,11 +563,11 @@ P.nc           Qsrf.nc        ploss.nc       temp.nc
 
 </pre><pre class="codeinput">ncdisp(fullfile(<span class="string">'ess_npsensitivity'</span>, <span class="string">'P.nc'</span>));
 </pre><pre class="codeoutput">Source:
-           /Users/kakearney/Documents/GitRepos/Distribution/readmeScripts/mixedlayer_examples/ess_npsensitivity/P.nc
+           /Users/kakearney/Documents/GitRepos/Distribution/mixed_layer-basics-pkg/ess_npsensitivity/P.nc
 Format:
            netcdf4
 Global Attributes:
-           history                  = 'Tue Jul 14 11:37:10 2015: ncecat -v P -u ensemble -n 5,4,1 ./ess_npsensitivity/sim0001.nc ./ess_npsensitivity/P.nc'
+           history                  = 'Mon Nov  9 10:31:56 2015: ncecat -v P -u ensemble -n 5,4,1 ./ess_npsensitivity/sim0001.nc ./ess_npsensitivity/P.nc'
            nco_openmp_thread_number = 1
 Dimensions:
            ensemble = 5     (UNLIMITED)
@@ -611,21 +609,23 @@ set(cb, <span class="string">'position'</span>, [0.93 0.05 0.03 0.9/nens]);
 % makes it easier to maintain on my end... sorry about that).  To get the
 % basics running, you need to add a few folders to your path:  
 % 
-%   addpath('mixed_layer-pkg/mixed_layer');
-%   addpath('mixed_layer-pkg/mixed_layer/biomodules');
-%   addpath('mixed_layer-pkg/mixed_layer/biomodules_subs');
-%   addpath('mixed_layer-pkg/seawater_ver3_2');
-%   addpath('mixed_layer-pkg/mergestruct');
+%   addpath('mixed_layer-basics-pkg/mixed_layer');
+%   addpath('mixed_layer-basics-pkg/mixed_layer/biomodules');
+%   addpath('mixed_layer-basics-pkg/mixed_layer/biomodules_subs');
+%   addpath('mixed_layer-basics-pkg/seawater_ver3_2');
+%   addpath('mixed_layer-basics-pkg/mergestruct');
 %
 % (Alter the paths as necessary to wherever you place these folders).
 %
 % If you only plan to run the |cobalt_fweb| module, or if you're adding
 % your own biology module, then that's all you need.  To play with the |np|
-% or |npz| modules, add three more:   
+% or |npz| modules, add three more (although these are simple models, I
+% developed them when I was still experimenting with ODE solvers, hence
+% the extra dependencies):
 %
-%   addpath('mixed_layer-pkg/odefixed')
-%   addpath('mixed_layer-pkg/odewrap')
-%   addpath('mixed_layer-pkg/photosynthesis')
+%   addpath('mixed_layer-basics-pkg/odefixed');
+%   addpath('mixed_layer-basics-pkg/odewrap');
+%   addpath('mixed_layer-basics-pkg/photosynthesis');
 %
 % Most users (i.e. probably everyone but me) can ignore the rest of the
 % folders, which are related to the wce (water 
@@ -639,16 +639,17 @@ set(cb, <span class="string">'position'</span>, [0.93 0.05 0.03 0.9/nens]);
 % code).  That said, if you really want to give it a try, add the rest of
 % the folders to your path:
 %
-%   addpath('mixed_layer-pkg/ConsoleProgressBar')
-%   addpath('mixed_layer-pkg/cprintf')
-%   addpath('mixed_layer-pkg/gridxy')
-%   addpath('mixed_layer-pkg/plots')
-%   addpath('mixed_layer-pkg/cellstr2')
-%   addpath('mixed_layer-pkg/dirfull')
-%   addpath('mixed_layer-pkg/ecopathensemble')
-%   addpath('mixed_layer-pkg/ecopathlite')
-%   addpath('mixed_layer-pkg/parsepv')
-%   addpath('mixed_layer-pkg/regexpfound')
+%   addpath('mixed_layer-basics-pkg/ConsoleProgressBar');
+%   addpath('mixed_layer-basics-pkg/cellstr2');
+%   addpath('mixed_layer-basics-pkg/cprintf');
+%   addpath('mixed_layer-basics-pkg/dirfull');
+%   addpath('mixed_layer-basics-pkg/ecopathensemble');
+%   addpath('mixed_layer-basics-pkg/ecopathlite');
+%   addpath('mixed_layer-basics-pkg/legendflex');
+%   addpath('mixed_layer-basics-pkg/parsepv');
+%   addpath('mixed_layer-basics-pkg/regexpfound');
+%   addpath('mixed_layer-basics-pkg/setgetpos_V1.2');
+
 
 
 %% Running physics-only simulations
