@@ -60,7 +60,10 @@ function [Out, D] = editstanzacalcs(a, k, bab, blead, qblead, z, da)
     
 amax = log(1 - 0.9999^(1/3))./-(k/12); 
 amax90 = log(1 - 0.9^(1/3))./-(k/12); % Old one, used for plots
+
+amax = amax90; % Reverting here, just to be consistent w/ Ecopath and Rpath
 xa = 0:da:ceil(amax);
+
 
 % Which stanza does each month-value fall into?
 
@@ -74,6 +77,7 @@ ia(ia == 0) = 1;
 if isscalar(bab)
     bab2 = bab./12; % to monthly
 else
+    bab = bab(:); % Make sure column vector
     bab2 = bab(ia)./12; % expand, and to monthly
 end
     
@@ -139,5 +143,5 @@ Out.ba = Out.b.*bab;
 
 isless = xa < amax90;
 D.x = xa(isless);
-D.y = [w l w.*l zsum-xa'.*bab];
+D.y = [w l w.*l zsum-xa'.*bab2];
 D.y = D.y(isless,:);
