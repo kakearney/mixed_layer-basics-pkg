@@ -36,6 +36,8 @@ Opt.pedstr = '_ped';
 
 Opt = parsepv(Opt, varargin);
 
+% Read from files
+
 Base = readtable([basename Opt.basestr '.csv']);
 Diet = readtable([basename Opt.dietstr '.csv'], 'ReadRowNames', true);
 Juvs = readtable([basename Opt.juvsstr '.csv']);
