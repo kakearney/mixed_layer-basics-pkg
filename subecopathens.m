@@ -51,7 +51,7 @@ for ii = 1:nx
     
     if length(idx) > 6 % fisheries included
         NewIn(ii).landing(idx{7}) = x{7}(ii,:);
-        NewIn(ii).landing(idx{8}) = x{8}(ii,:);
+        NewIn(ii).discard(idx{8}) = x{8}(ii,:);
     end
     
     % Adjust multi-stanza groups if necessary
