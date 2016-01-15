@@ -377,7 +377,7 @@ Ens.nall  = nall;
 % balance
 %----------------
 
-function [isbal,x] = checkbalance(Ewein, idx, x) %bbidx, pbidx, qbidx, dcidx, x)
+function [isbal,x] = checkbalance(Ewein, idx, x)
 
 nx = size(x,1);
 ncol = cellfun(@length, idx);
@@ -386,7 +386,8 @@ x = mat2cell(x, nx, ncol);
 [blah, Ep] = ecopathlite(Ewein, 'x', x, 'idx', idx, 'skipextra', true, 'silent', true);
 
 isbal = all([Ep.ee] <= 1 & [Ep.ee] >= 0 & ~isnan([Ep.ee]) & ...
-            [Ep.ge] >= 0 & [Ep.ge] <= 1, 1);
+            [Ep.ge] >= 0 & [Ep.ge] <= 1 & ...
+            bsxfun(@plus, Ewein.gs, [Ep.ge]) <= 1, 1);
 
 x = cat(2, x{:});
 
