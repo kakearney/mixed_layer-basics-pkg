@@ -1,15 +1,45 @@
 function G = ecopath2graph(Ewein)
 %ECOPATH2GRAPH Create graph objects for Ecopath model
 %
-% [G,H] = ecopath2graph(Ewein)
+% G = ecopath2graph(Ewein)
 %
 % Input variables:
 %
-%   Ewein: ecopath input structure
+%   Ewein:  ecopath input structure (see ecopathlite.m)
 %
 % Output variables:
 %
-%   G:      graph object describing all fluxes within Ecopath model.
+%   G:      digraph object.  Nodes represent the functional groups from the
+%           Ecopath model, plus 4 out-of-system nodes: Import/Export
+%           (source/target for import/export), Respiration (target for
+%           respiration losses from living groups), Landings (target for
+%           fisheries landings removed from the system), and Primary
+%           production (source for primary production).  The Nodes table
+%           includes the following fields:
+%
+%           Name:   name of group
+%           B:      biomass (same mass units as input model, typically t ww
+%                   km^-2) 
+%           type:   0 = consumer
+%                   1 = producer
+%                   2 = detritus
+%                   3 = fleet
+%                   4 = out-of-system
+%           TL:     trophic level (note: same as ecopath-calculated value
+%                   for living/detrital groups, but also adds fishing
+%                   fleets to the calculation, treating them as a
+%                   predator of both their landed and discarded catches).
+%
+%           Edges represent the fluxes between nodes, including predation,
+%           primary production, respiration, flows to detritus,
+%           import/export, fisheries catches, fisheries landings, and
+%           fisheries discards.  The Edges table includes the following
+%           fields:
+%
+%           EndNodes:   source and target nodes for each flux
+%           Weight:     mass flux per unit time (same units as input model,
+%                       typically t ww km^-2 yr^-1) 
+
 
 % Copyright 2015 Kelly Kearney
 
