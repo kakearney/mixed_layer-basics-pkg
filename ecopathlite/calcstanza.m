@@ -10,23 +10,18 @@ function A = calcstanza(A, varargin)
 % A few caveats...
 %
 % The values calculated by this script do not exactly replicate the values
-% one will get using the EwE 6 "Edit multi-stanza" menu.  For the biomass,
-% the difference should be very small, and results I think simply due to
-% the fact that my calculations are all carried out in double precision,
-% while the EwE code uses a mix of single and integer precision.  Although
-% Matlab makes it relatively easy to calculate the direct integrals (over
-% mortality rate Z and weight w), for consistency I have instead stuck with
-% the convention used in EwE to use a monthly discretization.  In tests,
-% the percent error between my results and the EwE ones tend to be <0.01%.
-%
-% However, the error on the consumption rates is a bit higher (in tests,
-% 0.005-0.4%), and I haven't quite figured out the source of this yet.  It
-% seems a bit high to be just due to the different precisions, or to the
-% fact that I use a much more vectorized approach than the original code.
-% While the differences are very small, they may make a difference if one
-% plans to generate ensembles using this code and then move back to the EwE
-% software.  If you do this, I suggest you double-check the balance of the
-% model(s) there.
+% one will get using the EwE 6 "Edit multi-stanza" menu.  This is the
+% result of both differing precisions between EwE6 and this code (I use
+% double, EwE6 uses a mix of integer and single) and a slightly different
+% method of dealing with the upper tail end of the biomass/consumption rate
+% age curves (I extend to 99.99% relative Winf; EwE6 extends to 90% and
+% then adds an extra accumulator calculation to deal with the rest). In
+% tests, the percent error between my results and the EwE ones tend to be
+% <0.01% for biomass values, and 0.005-0.4% for consumption rate values.
+% While the differences are very small, they may be important if one plans
+% to generate ensembles using this code and then move back to the EwE
+% software. If you do this, I suggest you double-check the balance of the
+% model(s) there. 
 %
 % Input variables:
 %

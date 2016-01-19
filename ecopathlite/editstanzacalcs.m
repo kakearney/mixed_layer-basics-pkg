@@ -4,7 +4,7 @@ function [Out, D] = editstanzacalcs(a, k, bab, blead, qblead, z, da)
 % [Out, D] = editstanzacalcs(a, k, bab, blead, qblead, z, da)
 %
 % This function replicates the EwE "Edit multi-stanza" calculations for a
-% single species group.  It calculate B and QB for all mutli-stanza
+% single species group.  It calculates B and QB for all mutli-stanza
 % subgroups based on the B and QB of the leading stanza group.
 %
 % Input variables:
@@ -55,11 +55,15 @@ function [Out, D] = editstanzacalcs(a, k, bab, blead, qblead, z, da)
 % Copyright 2015 Kelly Kearney
 
 % Setup of discretization.  Note that Ecopath uses 90% as the upper
-% bound, but that seems to leave out a good amount, so I'm upping it to
-% 99.99%.
+% bound, and then has an accumulator function later on to deal with the 
+% extra tail end of the biomass distribution.  I'm instead just using
+% 99.99% as the upper limit, which gets me very close to the same numbers
+% without adding computation (I don't loop over months like EwE6 does, so
+% it's just a matter of having slightly larger matrices).
     
 amax = log(1 - 0.9999^(1/3))./-(k/12); 
 amax90 = log(1 - 0.9^(1/3))./-(k/12); % Old one, used for plots
+
 xa = 0:da:ceil(amax);
 
 % Which stanza does each month-value fall into?
@@ -74,6 +78,7 @@ ia(ia == 0) = 1;
 if isscalar(bab)
     bab2 = bab./12; % to monthly
 else
+    bab = bab(:); % Make sure column vector
     bab2 = bab(ia)./12; % expand, and to monthly
 end
     
@@ -139,5 +144,5 @@ Out.ba = Out.b.*bab;
 
 isless = xa < amax90;
 D.x = xa(isless);
-D.y = [w l w.*l zsum-xa'.*bab];
+D.y = [w l w.*l zsum-xa'.*bab2];
 D.y = D.y(isless,:);
