@@ -185,6 +185,14 @@ if size(pedigree,2) > 5
 else
     geped = nan(size(bbped));
 end
+if size(pedigree,2) > 6
+    fshped = pedigree(:,7:end);
+    if size(fshped,2) ~= Ewein.ngear
+        error('Pedigree array must have 4, 5, 6, or 6+ngear columns');
+    end
+else
+    fshped = nan(ng, Ewein.ngear);
+end
 
 bbmid = Ewein.b;
 pbmid = Ewein.pb;
@@ -193,6 +201,9 @@ dcmid = Ewein.dc;
 eemid = Ewein.ee;
 gemid = Ewein.ge;
 
+lanmid = Ewein.landing;
+dismid = Ewein.discard;
+
 bbidx = find(~isnan(bbmid) & ~isnan(bbped));
 pbidx = find(~isnan(pbmid) & pbmid ~= 0 & ~isnan(pbped));
 qbidx = find(~isnan(qbmid) & qbmid ~= 0 & ~isnan(qbped));
@@ -200,12 +211,15 @@ dcidx = find(dcmid & ~isnan(dcped));
 eeidx = find(~isnan(eemid) & Ewein.pp ~= 2 & ~isnan(eeped));
 geidx = find(~isnan(gemid) & any(isnan([pbmid qbmid]),2) & ~isnan(geped)); % GE overwritten if PB and QB also provided
 
-idx = {bbidx, pbidx, qbidx, dcidx, eeidx, geidx};
+lanidx = find(lanmid & ~isnan(fshped));
+disidx = find(dismid & ~isnan(fshped));
+
+idx = {bbidx, pbidx, qbidx, dcidx, eeidx, geidx, lanidx, disidx};
 
 % All uncertain variables, together
 
-vmid = [bbmid(bbidx); pbmid(pbidx); qbmid(qbidx); dcmid(dcidx); eemid(eeidx); gemid(geidx)];
-vped = [bbped(bbidx); pbped(pbidx); qbped(qbidx); dcped(dcidx); eeped(eeidx); geped(geidx)];
+vmid = [bbmid(bbidx); pbmid(pbidx); qbmid(qbidx); dcmid(dcidx); eemid(eeidx); gemid(geidx); lanmid(lanidx); dismid(disidx)];
+vped = [bbped(bbidx); pbped(pbidx); qbped(qbidx); dcped(dcidx); eeped(eeidx); geped(geidx); fshped(lanidx); fshped(disidx)];
 vciv = vmid .* vped;
 
 nvar = length(vmid);
@@ -347,7 +361,7 @@ warning(S);
 % Additional parameters
 
 Ens.Ewein = Ewein;
-Ens.idx   = {bbidx, pbidx, qbidx, dcidx, eeidx, geidx};
+Ens.idx   = idx;
 ncol = cellfun(@length, Ens.idx);
 Ens.x     = mat2cell(x, nsample, ncol);
 Ens.mu    = mat2cell(mu,    ncol);
@@ -363,7 +377,7 @@ Ens.nall  = nall;
 % balance
 %----------------
 
-function [isbal,x] = checkbalance(Ewein, idx, x) %bbidx, pbidx, qbidx, dcidx, x)
+function [isbal,x] = checkbalance(Ewein, idx, x)
 
 nx = size(x,1);
 ncol = cellfun(@length, idx);
@@ -372,7 +386,8 @@ x = mat2cell(x, nx, ncol);
 [blah, Ep] = ecopathlite(Ewein, 'x', x, 'idx', idx, 'skipextra', true, 'silent', true);
 
 isbal = all([Ep.ee] <= 1 & [Ep.ee] >= 0 & ~isnan([Ep.ee]) & ...
-            [Ep.ge] >= 0 & [Ep.ge] <= 1, 1);
+            [Ep.ge] >= 0 & [Ep.ge] <= 1 & ...
+            bsxfun(@plus, Ewein.gs, [Ep.ge]) <= 1, 1);
 
 x = cat(2, x{:});
 

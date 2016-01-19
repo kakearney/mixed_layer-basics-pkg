@@ -49,6 +49,11 @@ for ii = 1:nx
     
     NewIn(ii).bh = NewIn(ii).b ./ NewIn(ii).areafrac;
     
+    if length(idx) > 6 % fisheries included
+        NewIn(ii).landing(idx{7}) = x{7}(ii,:);
+        NewIn(ii).discard(idx{8}) = x{8}(ii,:);
+    end
+    
     % Adjust multi-stanza groups if necessary
     
     if hasstanza
