@@ -129,19 +129,19 @@ switch action
     case 'init'
         
         out = cell(1, nout(1));
-        error(nargchk(nargin,nin(1),nin(1)));        
+        narginchk(nin(1), nin(1));      
         [out{:}] = init(varargin{:});
         
     case 'sourcesink'
         
         out = cell(1, nout(2));
-        error(nargchk(nargin,nin(2),nin(2)));        
+        narginchk(nin(2), nin(2));      
         [out{:}] = sourcesink(varargin{:});
         
     case 'vertmove'
         
         out = cell(1, nout(3));
-        error(nargchk(nargin,nin(3),nin(3)));        
+        narginchk(nin(3), nin(3));        
         [out{:}] = vertmove(varargin{:});
         
     otherwise
