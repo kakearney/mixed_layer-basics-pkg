@@ -66,7 +66,7 @@ function [n2,q,p_ave] = sw_bfrq(S,T,P,LAT)
 % Check Inputs
 %-------------
 
-error(nargchk(3, 4, nargin));
+narginchk(3,4);
 
 if nargin == 3
     LAT = [];
