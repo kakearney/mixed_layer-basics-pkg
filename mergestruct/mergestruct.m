@@ -65,7 +65,7 @@ function A = catstruct(varargin)
 %                  ML. Unique(...,'last') is no longer the deafult.
 %                  (thanks to Isabel P)
 
-error(nargchk(1,Inf,nargin)) ;
+narginchk(1,Inf);
 N = nargin ;
 
 if ~isstruct(varargin{end}),
