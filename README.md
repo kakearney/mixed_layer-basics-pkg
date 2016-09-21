@@ -6,18 +6,28 @@ The mixed_layer model is a Matlab-based suite of functions that simulates advect
 
  - Kearney KA (2012) An analysis of marine ecosystem dynamics through development of a coupled physical-biogeochemical-fisheries food web model. Princeton University
  - Kearney KA, Stock C, Aydin K, Sarmiento JL (2012) Coupling planktonic ecosystem and fisheries food web models for a pelagic ecosystem: Description and validation for the subarctic Pacific. Ecol Modell 237-238:43–62
+ 
+   [DOI: 10.1016/j.ecolmodel.2012.04.006](http://dx.doi.org/10.1016/j.ecolmodel.2012.04.006)
  - Kearney KA, Stock C, Sarmiento JL (2013) Amplification and attenuation of increased primary production in a marine food web. Mar Ecol Prog Ser 491:1–14
- - Kearney KA, Tommasi D, Stock C (in press) Simulated ecosystem response to volcanic iron fertilization in the subarctic Pacific ocean. Fish Oceanogr
+ 
+   [DOI: 10.3354/meps10484](http://dx.doi.org/10.3354/meps10484)
+ - Kearney KA, Tommasi D, Stock C (2015) Simulated ecosystem response to volcanic iron fertilization in the subarctic Pacific ocean. Fish Oceanogr 24:395–413
+ 
+   [DOI: 10.1111/fog.12118](http://dx.doi.org/10.1111/fog.12118)
 
 Variations of the code have also been used for the following studies:
 
  - Song H, Ji R, Stock C, Kearney K, Wang Z (2011) Interannual variability in phytoplankton blooms and plankton productivity over the Nova Scotian Shelf and in the Gulf of Maine. Mar Ecol Prog Ser 426:105–118
+ 
+   [DOI: 10.3354/meps09002](http://dx.doi.org/10.3354/meps09002)
  - Bianchi D, Stock C, Galbraith ED, Sarmiento JL (2013) Diel vertical migration: Ecological controls and impacts on the biological pump in a one-dimensional ocean model. Global Biogeochem Cycles 27:478–491
+ 
+   [DOI: 10.1002/gbc.20031](http://dx.doi.org/10.1002/gbc.20031)
  
  
 ### Contents and toolbox dependencies
 
-The mixed_layer repository offered here includes several top-level folders (alongside the README.md documentation and example files), all of which need to be added to your Matlab path in order to use the full functionality of this toolbox.  In addition, mixed_layer/biomodules and mixed_layer/biomodules_subs will need to be added to your Matlab path if you plan to invoke any of the biology parameters.
+The mixed\_layer repository offered here includes several top-level folders (alongside the README.md documentation and example files), all of which need to be added to your Matlab path in order to use the full functionality of this toolbox.  In addition, `mixed_layer/biomodules` and `mixed_layer/biomodules_subs` will need to be added to your Matlab path if you plan to invoke any of the biology parameters.
 
 The entire package relies on several Mathworks Matlab toolboxes:
 
