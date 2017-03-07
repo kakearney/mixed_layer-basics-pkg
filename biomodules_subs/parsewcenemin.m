@@ -6,7 +6,7 @@ function BioIn = parsewcenemin(varargin)
 % Applicable to both nemurokak and wce:
 %
 %   NemParam:   1 x 1 structure of NEMURO parameters (see
-%               nemuroinputparser) 
+%               nemuroParamSets.m) 
 %
 %   bnem0:      nz x 13 array of initial values for each state variable.
 %               Column 1 holds depths (m, negative down) and columns 2-14
