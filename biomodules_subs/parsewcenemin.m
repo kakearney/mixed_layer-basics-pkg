@@ -262,4 +262,3 @@ missing = sprintf('%s, ', p.UsingDefaults{tf});
 if any(tf)
     error('Missing input for wce/nemuro module: %s', missing(1:end-2));
 end
-
