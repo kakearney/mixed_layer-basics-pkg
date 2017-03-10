@@ -32,19 +32,19 @@ else
 
     [tf, loc] = ismember(lower(nemnames(:,1)), BioIn.types); 
 
-    nbsv = BioIn.Ewein.ngroup + sum(~tf);
+    nbsv = BioIn.EM.ngroup + sum(~tf);
 
     names = cell(nbsv,3);
     
     names(loc(tf),:) = nemnames(tf,:);
-    names(loc(tf),2) = BioIn.Ewein.name(loc(tf));
-    names(BioIn.Ewein.ngroup+1:end,:) = nemnames(~tf,:);
+    names(loc(tf),2) = BioIn.EM.name(loc(tf));
+    names(BioIn.EM.ngroup+1:end,:) = nemnames(~tf,:);
 
     % Name the remaining nekton and zooplankton groups, using N# and Z# for
     % short names and Ecopath names for long names
 
     isemp = cellfun('isempty', names(:,2));
-    names(isemp,2) = BioIn.Ewein.name(isemp);
+    names(isemp,2) = BioIn.EM.name(isemp);
 
     [names{isemp,3}] = deal('mol N m^-3');
     isn = strcmp(BioIn.types, 'n');
@@ -98,7 +98,7 @@ if ~BioIn.isnem
     A.links(bsxfun(@and, A.iszoo, A.isnek')) = 2; % N-eat-Z
     A.links(bsxfun(@and, A.isnek, A.isnek')) = 3; % N-eat-N
     A.links(bsxfun(@and, A.isphy, A.iszoo')) = 4; % Z-eat-P
-    [r,c] = find(BioIn.Ewein.dc == 0);
+    [r,c] = find(table2array(BioIn.EM.dc) == 0);
     idx = sub2ind(size(A.links), r, c);
     A.links(idx) = 0;
     

@@ -17,7 +17,7 @@ end
 % (only defined for original-11 NEMURO-derived variables, so reassign to
 % proper indices) 
 
-Np = nemuroflexinput(BioIn.NemParam);
+Np = nemparams2arrays(BioIn.NemParam);
 
 Biovars.alpha1                  = Np.alpha1;              % m^-1  
 Biovars.alpha2                  = Np.alpha2/1000;         % (m^3/molN)/m

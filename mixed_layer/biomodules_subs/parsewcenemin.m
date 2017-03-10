@@ -6,7 +6,7 @@ function BioIn = parsewcenemin(varargin)
 % Applicable to both nemurokak and wce:
 %
 %   NemParam:   1 x 1 structure of NEMURO parameters (see
-%               nemuroinputparser) 
+%               nemuroParamSets.m) 
 %
 %   bnem0:      nz x 13 array of initial values for each state variable.
 %               Column 1 holds depths (m, negative down) and columns 2-14
@@ -229,13 +229,18 @@ p.addParamValue('pofesink',     NaN,                       @(x) isnumeric(x) && 
 
 p.addParamValue('nomix',        false,                     @(x) islogical(x) && isscalar(x));
 p.addParamValue('ecosimpp',     false,                     @(x) islogical(x) && isscalar(x));
-p.addParamValue('Ewein',        [],                        @isstruct);
+% p.addParamValue('Ewein',        [],                        @isstruct);
 p.addParamValue('types',        []);
 p.addParamValue('mld',          -50,                       @(x) isscalar(x) && x<=0);
 p.addParamValue('temp',         0,                         @(x) isscalar(x));
 p.addParamValue('kgra',         0.0693,                    @(x) isvector(x));
 p.addParamValue('m0exp',        2,                         @(x) isnumeric(x) && (isscalar(x) || isvector(x)));
 % p.addParamValue('predatdepth',  true,                      @(x) islogical(x) && isscalar(x));
+p.addParamValue('EM',           [],                        @(x) validateattributes(x, {'ecopathmodel'}, {'scalar'}));
+p.addParamValue('x',            [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
+p.addParamValue('d',            [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
+p.addParamValue('theta',        [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
+p.addParamValue('ensdata',      [],                        @(x) validateattributes(x, {'numeric'}, {}));
 
 % Nemuro-only
 
@@ -254,7 +259,8 @@ BioIn = p.Results;
 if BioIn.isnem
     nodefault = {'NemParam','bnem0'};
 else
-    nodefault = {'Ewein', 'NemParam', 'types', 'bnem0'};
+%     nodefault = {'Ewein', 'NemParam', 'types', 'bnem0'};
+    nodefault = {'EM', 'NemParam', 'types', 'bnem0', 'x', 'd', 'theta'};
 end
 
 tf = ismember(p.UsingDefaults, nodefault);
@@ -262,4 +268,3 @@ missing = sprintf('%s, ', p.UsingDefaults{tf});
 if any(tf)
     error('Missing input for wce/nemuro module: %s', missing(1:end-2));
 end
-

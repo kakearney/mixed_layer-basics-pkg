@@ -94,8 +94,15 @@ isabovemld = Grd.z >= BioIn.mld;
 nlayer = sum(isabovemld);
 mld = -Grd.zp(nlayer+1);
 
-Ewein = ecopathinputcheck(BioIn.Ewein, true);
-Ep = ecopathlite(Ewein);
+EM = BioIn.EM;
+if isempty(BioIn.ensdata)
+    Ep = EM.ecopath;
+else
+    [~, Ep] = EM.ecopath('ensemble', BioIn.ensdata);
+end
+
+% Ewein = ecopathinputcheck(BioIn.Ewein, true);
+% Ep = ecopathlite(Ewein);
 
 isplank = Biovars.iszoo | Biovars.isphy;
 
@@ -161,19 +168,19 @@ bottomval = nan(nbsv,1);
 
 % Mortality exponent
 
-Biovars.m0exp                   = zeros(nbsv,1);
-Biovars.m0exp(1:Ewein.nlive)    = BioIn.m0exp;            % no unit
+Biovars.m0exp                = zeros(nbsv,1);
+Biovars.m0exp(1:EM.nlive)    = BioIn.m0exp;            % no unit
 
 % Nekton: the paramters for nekton come from the Ecopath mass balance
 
 Biovars.b0 = zeros(nbsv,1);
-Biovars.b0(1:Ewein.ngroup) = Ep.b;
+Biovars.b0(1:EM.ngroup) = Ep.b;
 Biovars.q0 = zeros(nbsv);
-Biovars.q0(1:Ewein.nlive,1:Ewein.nlive) = Ep.q0(1:Ewein.nlive,1:Ewein.nlive);
+Biovars.q0(1:EM.nlive,1:EM.nlive) = Ep.q0(1:EM.nlive,1:EM.nlive);
 Biovars.ge = zeros(nbsv,1);
-Biovars.ge(1:Ewein.nlive) = Ep.ge(1:Ewein.nlive);
+Biovars.ge(1:EM.nlive) = Ep.ge(1:EM.nlive);
 Biovars.gs = zeros(nbsv,1);
-Biovars.gs(1:Ewein.nlive) = Ewein.gs(1:Ewein.nlive);
+Biovars.gs(1:EM.nlive) = EM.groupdata.gs(1:EM.nlive);
 
 % For x, d, and theta, I accept data in one of two ways:
 % 1) vector of P-value log-tranformed-anomaly-from-base values, identical
@@ -181,31 +188,33 @@ Biovars.gs(1:Ewein.nlive) = Ewein.gs(1:Ewein.nlive);
 % 2) matrix of values for each group pair.  These values are NOT anomalies
 % but actual values to be used in the functional response equations.
 
-if isvector(Ewein.x)
-    [xj,xi] = meshgrid(Ewein.x);
+dcmask = table2array(EM.dc) == 0;
+
+if isvector(BioIn.x)
+    [xj,xi] = meshgrid(BioIn.x);
     x = 1 + exp(xi + xj);
-    x(Ewein.dc == 0) = 0;
+    x(dcmask) = 0;
 else
-    x = Ewein.x;
+    x = BioIn.x;
 end
 
-if isvector(Ewein.d)
-    [dj,di] = meshgrid(Ewein.d);
+if isvector(BioIn.d)
+    [dj,di] = meshgrid(BioIn.d);
     d = 1 + exp(di + dj);
-    d(Ewein.dc == 0) = 0;
+    d(dcmask) = 0;
 else
-    d = Ewein.d;
+    d = BioIn.d;
 end
 
-if isvector(Ewein.theta)
-    [thj,thi] = meshgrid(Ewein.theta);
+if isvector(BioIn.theta)
+    [thj,thi] = meshgrid(BioIn.theta);
     theta = exp(0.05*(thi + thj)); % TODO double-check theta, since different in spreadsheet and ppt
-    theta(Ewein.dc == 0) = 0;
+    theta(dcmask) = 0;
 else
-    theta = Ewein.theta;
+    theta = BioIn.theta;
 end
 
-n = nbsv - Ewein.ngroup;
+n = nbsv - EM.ngroup;
 Biovars.x = padarray(x, [n n], 'post');
 Biovars.d = padarray(d, [n n], 'post');
 Biovars.theta = padarray(theta, [n n], 'post');
@@ -220,7 +229,7 @@ Biovars.q0v = Biovars.q0./dz; % mol N m^-3 s^-1
 % Production (for debugging with ecosim production only)
 
 Biovars.p0 = zeros(nbsv,1);
-Biovars.p0(1:Ewein.ngroup) = Ep.pb .* Ep.b; % mol N m^-2 s^-1
+Biovars.p0(1:EM.ngroup) = Ep.pb .* Ep.b; % mol N m^-2 s^-1
 Biovars.p0v = Biovars.p0./dz;                     % mol N m^-3 s^-1 
 
 % Temperature factors
@@ -236,7 +245,7 @@ Biovars.q0vat0 = bsxfun(@rdivide, Biovars.q0v, tempfac0');
 % Mortality (using ecopath-based mortality)
 
 Biovars.m0 = zeros(nbsv,1);
-Biovars.m0(1:Ewein.nlive) = Ep.otherMortRate(1:Ewein.nlive);  % s^-1
+Biovars.m0(1:EM.nlive) = Ep.otherMortRate(1:EM.nlive);  % s^-1
 if any(Biovars.m0 < 0)
     warning('WCE:m0neg', 'Some m0 < 0, setting to 0');
     Biovars.m0 = max(Biovars.m0, 0);
@@ -245,7 +254,7 @@ end
 % Mortality: Allows for any exponential function aB.^y
 
 m0 = zeros(nbsv,1);
-m0(1:Ewein.nlive) = Ep.otherMortRate(1:Ewein.nlive);  % s^-1
+m0(1:EM.nlive) = Ep.otherMortRate(1:EM.nlive);  % s^-1
 m0b = m0 .* bio(1,:)'; % mass-balanced flux, molN/m^3/s
 
 Biovars.m0coef = m0b./(bio(1,:)'.^Biovars.m0exp);
