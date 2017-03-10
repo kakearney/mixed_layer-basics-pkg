@@ -240,7 +240,7 @@ p.addParamValue('EM',           [],                        @(x) validateattribut
 p.addParamValue('x',            [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
 p.addParamValue('d',            [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
 p.addParamValue('theta',        [],                        @(x) validateattributes(x, {'numeric'}, {'square'}));
-p.addParamValue('ensdata',      [],                        @(x) validateattributes(x, {'numeric'}));
+p.addParamValue('ensdata',      [],                        @(x) validateattributes(x, {'numeric'}, {}));
 
 % Nemuro-only
 
