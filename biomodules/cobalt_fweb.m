@@ -115,9 +115,9 @@ ismixed = true(1,12);
 % Nitrate is set at the bottom boundary, note that biorlx provides options
 % to relax deep nutrients at multiple grid cells (not just the bottom 
 % boundary) toward specified values. 
-bottomval = [NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN bio(end,12)];
+% bottomval = [NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN bio(end,12)];
 % for use this version of bottomval to check conservation
-%bottomval = [NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN];
+bottomval = [NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN];
 
 %
 %   COBALT parameter values (Default if global formulation of Stock et al.,
@@ -411,6 +411,9 @@ parz24 = P.par24.*exp(P.kpar.*G.z);  % irradiance integrated over 24 hours
 sigdifcum = cumsum(diff(sig));      % cumulative dens diff from surface
 aa = find(sigdifcum > mld_thresh);
 parz24_mixed = parz24;
+if isempty(aa)
+    aa = length(sigdifcum); % KK added
+end
 parz24_mixed(1:aa(1)) = mean(parz(1:aa(1)));
 mld = aa(1)*G.dz;
 
