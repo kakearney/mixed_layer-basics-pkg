@@ -213,7 +213,11 @@ if Opt.postprocess
         % postprocess before this is done (if postprocessing has already
         % been completed, this will skip that as well)
         
-        Tmp = dirfull(fullfile(simfolder{is}, 'sim*.nc'));
+        Tmp = dir(fullfile(simfolder{is}, 'sim*.nc'));
+        for ii = 1:length(Tmp)
+            Tmp(ii).name = fullfile(Tmp(ii).folder, Tmp(ii).name);
+        end
+        
         if isempty(Tmp) && exist(fullfile(simfolder{is}, 'temp.nc'), 'file')
             warning('Folder %s already post-processed', simfolder{is});
             continue % already post-processed (if started from crash)
